@@ -1,0 +1,45 @@
+= AMICLEAN - Cleanup unused and old AMIs on AWS
+
+This tool is intended to:
+
+. Get all available EC2 instances and get the used AMI
+. Get all owned AMI's
+. Filter out AMI's which are currently used bei EC2 instances
+. Delete all AMI's which are older then the specified duration (default is 7 days)
+
+== Usage
+
+`amiclean [flags]`
+
+=== Preqrequisites
+
+amiclean uses already provided credentials in ~/.aws/credentials also it uses the central configuration in ~/.aws/config!
+
+
+=== Examples
+`amiclean` scan all AMIs owned by self and delete them if they are unused and older then 7 days.             
+
+`amiclean --account 2451251` scan all AMIs of self and were AWS account 2451251 are owner
+
+`amiclean --dry-run` do not delete anything just show what you would do
+
+`amiclean --older-then 5w` delete all images which are older then 5w and are unused
+
+=== Flags
+-a, --account string:: Set AWS account number to cleanup AMIs. Used to set owner information when selecting AMIs. If not set only 'self' is used.
+-d, --dry-run:: If set to true nothing will be deleted. And amiclean will just show what it would do!
+-?, --help:: Print usage information
+-o, --older-then string:: Set the duration string (e.g 5d, 1w etc.) how old AMIs must be to be deleted. E.g. if set to 7d, AMIs will be delete which are older then 7 days. (default "7d")
+-v, --version:: Print version information
+
+== Development
+
+=== Generate mock using mockery
+
+In order to test the ec2client I used link:https://github.com/vektra/mockery[mockery] to create the mocks:
+
+[source,sh]
+----
+cd internal
+mockery --name Ec2client --with-expecter
+----
