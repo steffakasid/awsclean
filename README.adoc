@@ -25,11 +25,20 @@ amiclean uses already provided credentials in ~/.aws/credentials also it uses th
 
 `amiclean --older-then 5w` delete all images which are older then 5w and are unused
 
+`amiclean --ignore ^amia.* --ignore ^amib.*` delete all images which name does not start with amia or amib
+
+=== Filter Logic
+
+1st:: all used AMIs are filtered out
+2nd:: all ignore patterns are matched an ignored AMIs are filtered out
+3rd:: the age of the AMI is checked if it's younger then the given duration the AMI is filtered out
+
 === Flags
 -a, --account string:: Set AWS account number to cleanup AMIs. Used to set owner information when selecting AMIs. If not set only 'self' is used.
 -d, --dry-run:: If set to true nothing will be deleted. And amiclean will just show what it would do!
--?, --help:: Print usage information
 -o, --older-then string:: Set the duration string (e.g 5d, 1w etc.) how old AMIs must be to be deleted. E.g. if set to 7d, AMIs will be delete which are older then 7 days. (default "7d")
+-i, --ignore stringArray:: Set ignore regex patterns. If a ami name matches the pattern it will be exclueded from cleanup.
+-?, --help:: Print usage information
 -v, --version:: Print version information
 
 == Development

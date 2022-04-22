@@ -19,29 +19,31 @@ type Ec2client interface {
 }
 
 type AmiClean struct {
-	ec2client  Ec2client
-	olderthen  time.Duration
-	awsaccount string
-	dryrun     bool
-	usedAMIs   []string
+	ec2client      Ec2client
+	olderthen      time.Duration
+	awsaccount     string
+	dryrun         bool
+	usedAMIs       []string
+	ignorePatterns []string
 }
 
 func NewInstance(
 	conf func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (cfg aws.Config, err error),
 	initFunc func(cfg aws.Config, optFns ...func(*ec2.Options)) *ec2.Client,
-	olderthen time.Duration, awsaccount string, dryrun bool) *AmiClean {
+	olderthen time.Duration, awsaccount string,
+	dryrun bool,
+	ignorePatterns []string) *AmiClean {
 
 	cfg, err := conf(context.TODO())
-	if err != nil {
-		logger.Fatal(err)
-	}
+	CheckError(err, true)
 
 	return &AmiClean{
-		ec2client:  initFunc(cfg),
-		olderthen:  olderthen,
-		awsaccount: awsaccount,
-		dryrun:     dryrun,
-		usedAMIs:   []string{},
+		ec2client:      initFunc(cfg),
+		olderthen:      olderthen,
+		awsaccount:     awsaccount,
+		dryrun:         dryrun,
+		usedAMIs:       []string{},
+		ignorePatterns: ignorePatterns,
 	}
 }
 
@@ -85,20 +87,28 @@ func (a AmiClean) DeleteOlderUnusedAMIs() error {
 	olderThenDate := today.Add(a.olderthen * -1)
 	for _, image := range images.Images {
 		if !contains(a.usedAMIs, *image.ImageId) {
-			creationDate, err := time.Parse("2006-01-02T15:04:05.000Z", *image.CreationDate)
+			ok, err := matchAny(*image.Name, a.ignorePatterns)
 			if err != nil {
-				logger.Error(err)
+				return err
 			}
-			if creationDate.Before(olderThenDate) {
-				logger.Infof("Delete %s:%s as it's creationdate %s is older then %s", *image.ImageId, *image.Name, *image.CreationDate, olderThenDate.String())
-				deregisterInput := &ec2.DeregisterImageInput{
-					ImageId: image.ImageId,
-					DryRun:  aws.Bool(a.dryrun),
+			if !ok {
+				creationDate, err := time.Parse("2006-01-02T15:04:05.000Z", *image.CreationDate)
+				if err != nil {
+					logger.Error(err)
 				}
-				_, err := a.ec2client.DeregisterImage(context.TODO(), deregisterInput)
-				CheckError(err, false)
+				if creationDate.Before(olderThenDate) {
+					logger.Infof("Delete %s:%s as it's creationdate %s is older then %s", *image.ImageId, *image.Name, *image.CreationDate, olderThenDate.String())
+					deregisterInput := &ec2.DeregisterImageInput{
+						ImageId: image.ImageId,
+						DryRun:  aws.Bool(a.dryrun),
+					}
+					_, err := a.ec2client.DeregisterImage(context.TODO(), deregisterInput)
+					CheckError(err, false)
+				} else {
+					logger.Infof("Keeping %s:%s as it's creationdate %s is newer then %s", *image.ImageId, *image.Name, *image.CreationDate, olderThenDate.String())
+				}
 			} else {
-				logger.Infof("Keeping %s:%s as it's creationdate %s is newer then %s", *image.ImageId, *image.Name, *image.CreationDate, olderThenDate.String())
+				logger.Infof("Ignored %s\n", *image.ImageId)
 			}
 		} else {
 			logger.Infof("Skipping %s\n", *image.ImageId)
