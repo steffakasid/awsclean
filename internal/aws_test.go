@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/google/uuid"
 	"github.com/steffakasid/amiclean/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/xhit/go-str2duration/v2"
@@ -23,7 +24,7 @@ func TestNewInstance(t *testing.T) {
 		return &ec2.Client{}
 	}
 
-	amiclean := NewInstance(confFunc, initFunc, 1, "1234", false, []string{})
+	amiclean := NewInstance(confFunc, initFunc, 1, "1234", false, false, []string{})
 
 	assert.NotNil(t, amiclean)
 	assert.Implements(t, (*Ec2client)(nil), amiclean.ec2client)
@@ -32,55 +33,26 @@ func TestNewInstance(t *testing.T) {
 func TestGetUsedAmis(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		ec2Mock := &mocks.Ec2client{}
-		opts := &ec2.DescribeInstancesInput{NextToken: nil}
-		result := &ec2.DescribeInstancesOutput{
-			Reservations: []types.Reservation{
-				{
-					Instances: []types.Instance{
-						{
-							ImageId: aws.String("1234"),
-						},
-					},
-				},
-				{
-					Instances: []types.Instance{
-						{
-							ImageId: aws.String("53453"),
-						},
-						{
-							ImageId: aws.String("acb"),
-						},
-					},
-				},
-			},
-			NextToken: nil,
-		}
-		ec2Mock.EXPECT().DescribeInstances(context.TODO(), opts).Return(result, nil).Once()
+		expectedAMIIDs := mockDescribeInstances(1, ec2Mock)
 
 		amiclean := &AmiClean{
 			ec2client: ec2Mock,
 		}
 		amiclean.GetUsedAMIs()
-		assert.Contains(t, amiclean.usedAMIs, "1234")
-		assert.Contains(t, amiclean.usedAMIs, "53453")
-		assert.Contains(t, amiclean.usedAMIs, "acb")
+		assert.ElementsMatch(t, expectedAMIIDs, amiclean.usedAMIs)
 	})
 
 	t.Run("With Paging", func(t *testing.T) {
 		ec2Mock := &mocks.Ec2client{}
-		opts := &ec2.DescribeInstancesInput{NextToken: nil}
-		result := &ec2.DescribeInstancesOutput{
-			Reservations: []types.Reservation{
-				{
-					Instances: []types.Instance{
-						{
-							ImageId: aws.String("1234"),
-						},
-					},
-				},
-			},
-			NextToken: aws.String("next"),
+		expectedAMIIDs := mockDescribeInstances(4, ec2Mock)
+
+		amiclean := &AmiClean{
+			ec2client: ec2Mock,
 		}
+		amiclean.GetUsedAMIs()
+		assert.ElementsMatch(t, expectedAMIIDs, amiclean.usedAMIs)
+	})
+
 		ec2Mock.EXPECT().DescribeInstances(context.TODO(), opts).Return(result, nil).Once()
 		opts2 := &ec2.DescribeInstancesInput{NextToken: aws.String("next")}
 		result2 := &ec2.DescribeInstancesOutput{
@@ -106,14 +78,13 @@ func TestGetUsedAmis(t *testing.T) {
 
 	t.Run("Error DescribeInstances", func(t *testing.T) {
 		ec2Mock := &mocks.Ec2client{}
-		opts := &ec2.DescribeInstancesInput{NextToken: nil}
-		ec2Mock.EXPECT().DescribeInstances(context.TODO(), opts).Return(nil, errors.New("An Error")).Once()
+		mockDescribeInstances(2, ec2Mock, 2)
 
 		amiclean := &AmiClean{
 			ec2client: ec2Mock,
 		}
 		amiclean.GetUsedAMIs()
-		assert.Len(t, amiclean.usedAMIs, 0)
+		assert.Len(t, amiclean.usedAMIs, 3)
 	})
 }
 
@@ -407,4 +378,66 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		err = amiclean.DeleteOlderUnusedAMIs()
 		assert.NoError(t, err)
 	})
+}
+
+func mockDescribeInstances(numCalls int, ec2Mock *mocks.Ec2client, errCalls ...int) (imageIds []string) {
+	var nextToken string = ""
+	for i := 1; i <= numCalls; i++ {
+		previousToken := nextToken
+
+		opts := ec2.DescribeInstancesInput{}
+		if previousToken != "" {
+			opts.NextToken = &previousToken
+		}
+
+		if isErrorCall(i, errCalls) {
+			ec2Mock.EXPECT().DescribeInstances(context.TODO(), &opts).Return(nil, errors.New("some error")).Once()
+		} else {
+			id1 := uuid.NewString()
+			imageIds = append(imageIds, id1)
+			id2 := uuid.NewString()
+			imageIds = append(imageIds, id2)
+			id3 := uuid.NewString()
+			imageIds = append(imageIds, id3)
+			result := ec2.DescribeInstancesOutput{
+				Reservations: []types.Reservation{
+					{
+						Instances: []types.Instance{
+							{
+								ImageId: aws.String(id1),
+							},
+						},
+					},
+					{
+						Instances: []types.Instance{
+							{
+								ImageId: aws.String(id2),
+							},
+							{
+								ImageId: aws.String(id3),
+							},
+						},
+					},
+				},
+			}
+			if i < numCalls {
+				result.NextToken = aws.String(uuid.NewString())
+				nextToken = *result.NextToken
+			} else {
+				nextToken = ""
+			}
+			ec2Mock.EXPECT().DescribeInstances(context.TODO(), &opts).Return(&result, nil).Once()
+		}
+
+	}
+	return imageIds
+}
+
+func isErrorCall(call int, errCallIDs []int) bool {
+	for _, errCallID := range errCallIDs {
+		if call == errCallID {
+			return true
+		}
+	}
+	return false
 }
