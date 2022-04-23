@@ -16,6 +16,7 @@ const (
 	dryrun    = "dry-run"
 	olderthen = "older-then"
 	account   = "account"
+	launchTpl = "launch-templates"
 	ignore    = "ignore"
 )
 
@@ -26,6 +27,7 @@ func init() {
 	flag.StringP(olderthen, "o", "7d", "Set the duration string (e.g 5d, 1w etc.) how old AMIs must be to be deleted. E.g. if set to 7d, AMIs will be delete which are older then 7 days.")
 	flag.StringP(account, "a", "", "Set AWS account number to cleanup AMIs. Used to set owner information when selecting AMIs. If not set only 'self' is used.")
 	flag.StringArrayP(ignore, "i", []string{}, "Set ignore regex patterns. If a ami name matches the pattern it will be exclueded from cleanup.")
+	flag.BoolP(launchTpl, "l", false, "Additionally scan launch templates for used AMIs.")
 	flag.BoolP("version", "v", false, "Print version information")
 	flag.BoolP("help", "?", false, "Print usage information")
 
@@ -70,7 +72,7 @@ func main() {
 	} else {
 		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
 		internal.CheckError(err, true)
-		amiclean := internal.NewInstance(config.LoadDefaultConfig, ec2.NewFromConfig, olderthenDuration, viper.GetString(account), viper.GetBool(dryrun), viper.GetStringSlice(ignore))
+		amiclean := internal.NewInstance(config.LoadDefaultConfig, ec2.NewFromConfig, olderthenDuration, viper.GetString(account), viper.GetBool(dryrun), viper.GetBool(launchTpl), viper.GetStringSlice(ignore))
 		amiclean.GetUsedAMIs()
 		err = amiclean.DeleteOlderUnusedAMIs()
 		internal.CheckError(err, true)

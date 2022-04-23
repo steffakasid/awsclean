@@ -53,27 +53,17 @@ func TestGetUsedAmis(t *testing.T) {
 		assert.ElementsMatch(t, expectedAMIIDs, amiclean.usedAMIs)
 	})
 
-		ec2Mock.EXPECT().DescribeInstances(context.TODO(), opts).Return(result, nil).Once()
-		opts2 := &ec2.DescribeInstancesInput{NextToken: aws.String("next")}
-		result2 := &ec2.DescribeInstancesOutput{
-			Reservations: []types.Reservation{
-				{
-					Instances: []types.Instance{
-						{
-							ImageId: aws.String("4321"),
-						},
-					},
-				},
-			},
-			NextToken: nil,
-		}
-		ec2Mock.EXPECT().DescribeInstances(context.TODO(), opts2).Return(result2, nil).Once()
+	t.Run("Additionally from Launch Templates", func(t *testing.T) {
+		ec2Mock := &mocks.Ec2client{}
+		expectedAMIIDs := mockDescribeInstances(2, ec2Mock)
+		expectedAMIIDs = append(expectedAMIIDs, mockDescribeLaunchTemplateVersions(2, ec2Mock)...)
+
 		amiclean := &AmiClean{
-			ec2client: ec2Mock,
+			ec2client:     ec2Mock,
+			useLaunchTpls: true,
 		}
 		amiclean.GetUsedAMIs()
-		assert.Contains(t, amiclean.usedAMIs, "1234")
-		assert.Contains(t, amiclean.usedAMIs, "4321")
+		assert.ElementsMatch(t, expectedAMIIDs, amiclean.usedAMIs)
 	})
 
 	t.Run("Error DescribeInstances", func(t *testing.T) {
@@ -427,6 +417,57 @@ func mockDescribeInstances(numCalls int, ec2Mock *mocks.Ec2client, errCalls ...i
 				nextToken = ""
 			}
 			ec2Mock.EXPECT().DescribeInstances(context.TODO(), &opts).Return(&result, nil).Once()
+		}
+
+	}
+	return imageIds
+}
+
+func mockDescribeLaunchTemplateVersions(numCalls int, ec2Mock *mocks.Ec2client, errCalls ...int) (imageIds []string) {
+	var nextToken string = ""
+	for i := 1; i <= numCalls; i++ {
+		previousToken := nextToken
+
+		opts := ec2.DescribeLaunchTemplateVersionsInput{}
+		if previousToken != "" {
+			opts.NextToken = &previousToken
+		}
+
+		if isErrorCall(i, errCalls) {
+			ec2Mock.EXPECT().DescribeLaunchTemplateVersions(context.TODO(), &opts).Return(nil, errors.New("some error")).Once()
+		} else {
+			id1 := uuid.NewString()
+			imageIds = append(imageIds, id1)
+			id2 := uuid.NewString()
+			imageIds = append(imageIds, id2)
+			id3 := uuid.NewString()
+			imageIds = append(imageIds, id3)
+			result := ec2.DescribeLaunchTemplateVersionsOutput{
+				LaunchTemplateVersions: []types.LaunchTemplateVersion{
+					{
+						LaunchTemplateData: &types.ResponseLaunchTemplateData{
+							ImageId: &id1,
+						},
+					},
+					{
+						LaunchTemplateData: &types.ResponseLaunchTemplateData{
+							ImageId: &id2,
+						},
+					},
+					{
+						LaunchTemplateData: &types.ResponseLaunchTemplateData{
+							ImageId: &id3,
+						},
+					},
+				},
+			}
+			if i < numCalls {
+				result.NextToken = aws.String(uuid.NewString())
+				nextToken = *result.NextToken
+			} else {
+				nextToken = ""
+			}
+			ec2Mock.EXPECT().DescribeLaunchTemplateVersions(context.TODO(), &opts).Return(&result, nil).Once()
 		}
 
 	}
