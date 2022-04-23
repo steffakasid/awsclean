@@ -38,7 +38,7 @@ func NewInstance(
 	ignorePatterns []string) *AmiClean {
 
 	cfg, err := conf(context.TODO())
-	CheckError(err, true)
+	CheckError(err, logger.Fatalf)
 
 	return &AmiClean{
 		ec2client:      initFunc(cfg),
@@ -68,7 +68,7 @@ func (a *AmiClean) getUsedAMIsFromEC2() {
 			opts.NextToken = &nextToken
 		}
 		ec2Instances, err := a.ec2client.DescribeInstances(context.TODO(), opts)
-		CheckError(err, false)
+		CheckError(err, logger.Errorf)
 		if ec2Instances != nil {
 			for _, reserveration := range ec2Instances.Reservations {
 				for _, instance := range reserveration.Instances {
@@ -95,7 +95,7 @@ func (a *AmiClean) getUsedAMIsFromLaunchTpls() {
 			opts.NextToken = &nextToken
 		}
 		launchTpls, err := a.ec2client.DescribeLaunchTemplateVersions(context.TODO(), opts)
-		CheckError(err, false)
+		CheckError(err, logger.Errorf)
 		if launchTpls != nil {
 			for _, launchTplVersion := range launchTpls.LaunchTemplateVersions {
 				if launchTplVersion.LaunchTemplateData.ImageId != nil {
@@ -141,7 +141,7 @@ func (a AmiClean) DeleteOlderUnusedAMIs() error {
 						DryRun:  aws.Bool(a.dryrun),
 					}
 					_, err := a.ec2client.DeregisterImage(context.TODO(), deregisterInput)
-					CheckError(err, false)
+					CheckError(err, logger.Errorf)
 				} else {
 					logger.Infof("Keeping %s:%s as it's creationdate %s is newer then %s", *image.ImageId, *image.Name, *image.CreationDate, olderThenDate.String())
 				}
@@ -155,14 +155,7 @@ func (a AmiClean) DeleteOlderUnusedAMIs() error {
 	return nil
 }
 
-func CheckError(err error, isFatal bool) {
-	var logFunc func(format string, args ...interface{})
-	if isFatal {
-		logFunc = logger.Fatalf
-	} else {
-		logFunc = logger.Errorf
-	}
-
+func CheckError(err error, logFunc func(tpl string, args ...interface{})) {
 	if err != nil {
 		var ae smithy.APIError
 		if errors.As(err, &ae) {

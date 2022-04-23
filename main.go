@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	logger "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/steffakasid/amiclean/internal"
@@ -61,7 +62,7 @@ Flags:`)
 
 	flag.Parse()
 	err := viper.BindPFlags(flag.CommandLine)
-	internal.CheckError(err, true)
+	internal.CheckError(err, logger.Fatalf)
 }
 
 func main() {
@@ -71,10 +72,10 @@ func main() {
 		flag.Usage()
 	} else {
 		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
-		internal.CheckError(err, true)
+		internal.CheckError(err, logger.Fatalf)
 		amiclean := internal.NewInstance(config.LoadDefaultConfig, ec2.NewFromConfig, olderthenDuration, viper.GetString(account), viper.GetBool(dryrun), viper.GetBool(launchTpl), viper.GetStringSlice(ignore))
 		amiclean.GetUsedAMIs()
 		err = amiclean.DeleteOlderUnusedAMIs()
-		internal.CheckError(err, true)
+		internal.CheckError(err, logger.Fatalf)
 	}
 }

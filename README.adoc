@@ -27,6 +27,8 @@ amiclean uses already provided credentials in ~/.aws/credentials also it uses th
 
 `amiclean --ignore ^amia.* --ignore ^amib.*` delete all images which name does not start with amia or amib
 
+`amiclean --launch-templates` additionally scan launch templates for used AMIs
+
 === Filter Logic
 
 1st:: all used AMIs are filtered out
@@ -38,6 +40,7 @@ amiclean uses already provided credentials in ~/.aws/credentials also it uses th
 -d, --dry-run:: If set to true nothing will be deleted. And amiclean will just show what it would do!
 -o, --older-then string:: Set the duration string (e.g 5d, 1w etc.) how old AMIs must be to be deleted. E.g. if set to 7d, AMIs will be delete which are older then 7 days. (default "7d")
 -i, --ignore stringArray:: Set ignore regex patterns. If a ami name matches the pattern it will be exclueded from cleanup.
+-l, --launch-templates:: Additionally scan launch templates for used AMIs.
 -?, --help:: Print usage information
 -v, --version:: Print version information
 
