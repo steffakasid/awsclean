@@ -2,7 +2,7 @@ package internal
 
 import "regexp"
 
-func contains(arr []string, elem string) bool {
+func Contains(arr []string, elem string) bool {
 	for _, itm := range arr {
 		if itm == elem {
 			return true
@@ -11,14 +11,14 @@ func contains(arr []string, elem string) bool {
 	return false
 }
 
-func uniqueAppend(arr []string, elem string) []string {
-	if !contains(arr, elem) {
+func UniqueAppend(arr []string, elem string) []string {
+	if !Contains(arr, elem) {
 		return append(arr, elem)
 	}
 	return arr
 }
 
-func matchAny(str string, regExps []string) (bool, error) {
+func MatchAny(str string, regExps []string) (bool, error) {
 	for _, regExpStr := range regExps {
 		regExp, err := regexp.Compile(regExpStr)
 		if err != nil {

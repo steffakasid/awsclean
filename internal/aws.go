@@ -3,34 +3,35 @@ package internal
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/smithy-go"
 	logger "github.com/sirupsen/logrus"
 )
+
+const awsEC2Volume = "AWS::EC2::Volume"
 
 type Ec2client interface {
 	DescribeInstances(ctx context.Context, params *ec2.DescribeInstancesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeInstancesOutput, error)
 	DescribeImages(ctx context.Context, params *ec2.DescribeImagesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeImagesOutput, error)
 	DeregisterImage(ctx context.Context, params *ec2.DeregisterImageInput, optFns ...func(*ec2.Options)) (*ec2.DeregisterImageOutput, error)
 	DescribeLaunchTemplateVersions(ctx context.Context, params *ec2.DescribeLaunchTemplateVersionsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeLaunchTemplateVersionsOutput, error)
-}
-
-type AmiClean struct {
-	ec2client      Ec2client
-	olderthen      time.Duration
-	awsaccount     string
-	dryrun         bool
-	useLaunchTpls  bool
-	usedAMIs       []string
-	ignorePatterns []string
+	DescribeVolumes(ctx context.Context, params *ec2.DescribeVolumesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeVolumesOutput, error)
+	DeleteVolume(ctx context.Context, params *ec2.DeleteVolumeInput, optFns ...func(*ec2.Options)) (*ec2.DeleteVolumeOutput, error)
 }
 
 type AWS struct {
-	ec2        Ec2client
+	ec2 Ec2client
+}
+
+func NewFromInterface(ec2 Ec2client) *AWS {
+	return &AWS{
+		ec2: ec2,
+	}
 }
 
 func NewAWSClient(conf func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (cfg aws.Config, err error),
@@ -42,11 +43,10 @@ func NewAWSClient(conf func(ctx context.Context, optFns ...func(*config.LoadOpti
 	CheckError(err, logger.Fatalf)
 
 	aws.ec2 = ec2InitFunc(cfg)
-	aws.cloudtrail = clouttrailInitFunc(cfg)
 	return aws
 }
 
-func (a *AWS) getUsedAMIsFromEC2() []string {
+func (a *AWS) GetUsedAMIsFromEC2() []string {
 	usedImages := []string{}
 	nextToken := ""
 	for {
@@ -59,7 +59,7 @@ func (a *AWS) getUsedAMIsFromEC2() []string {
 		if ec2Instances != nil {
 			for _, reserveration := range ec2Instances.Reservations {
 				for _, instance := range reserveration.Instances {
-					usedImages = uniqueAppend(usedImages, *instance.ImageId)
+					usedImages = UniqueAppend(usedImages, *instance.ImageId)
 				}
 			}
 		}
@@ -73,7 +73,7 @@ func (a *AWS) getUsedAMIsFromEC2() []string {
 	return usedImages
 }
 
-func (a *AWS) getUsedAMIsFromLaunchTpls() []string {
+func (a *AWS) GetUsedAMIsFromLaunchTpls() []string {
 	usedImages := []string{}
 	nextToken := ""
 	for {
@@ -100,49 +100,59 @@ func (a *AWS) getUsedAMIsFromLaunchTpls() []string {
 	logger.Debug("UsedImages[] from Launch Templates", usedImages)
 	return usedImages
 }
+
+func (a AWS) DescribeImages(accountId string) ([]ec2Types.Image, error) {
+	describeImageInput := &ec2.DescribeImagesInput{Owners: []string{"self"}}
+	if accountId != "" {
+		describeImageInput.Owners = append(describeImageInput.Owners, accountId)
+	}
+	imagesOutput, err := a.ec2.DescribeImages(context.TODO(), describeImageInput)
+	if err != nil {
+		return nil, err
+	}
+	return imagesOutput.Images, nil
 }
 
-func (a AmiClean) DeleteOlderUnusedAMIs() error {
-	describeImageInput := &ec2.DescribeImagesInput{Owners: []string{"self"}}
-	if a.awsaccount != "" {
-		describeImageInput.Owners = append(describeImageInput.Owners, a.awsaccount)
+func (a AWS) DeregisterImage(imageId string, dryRun bool) error {
+	deregisterInput := &ec2.DeregisterImageInput{
+		ImageId: &imageId,
+		DryRun:  &dryRun,
 	}
-	images, err := a.ec2client.DescribeImages(context.TODO(), describeImageInput)
-	if err != nil {
-		return err
-	}
-	today := time.Now()
-	olderThenDate := today.Add(a.olderthen * -1)
-	for _, image := range images.Images {
-		if !contains(a.usedAMIs, *image.ImageId) {
-			ok, err := matchAny(*image.Name, a.ignorePatterns)
-			if err != nil {
-				return err
-			}
-			if !ok {
-				creationDate, err := time.Parse("2006-01-02T15:04:05.000Z", *image.CreationDate)
-				if err != nil {
-					logger.Error(err)
-				}
-				if creationDate.Before(olderThenDate) {
-					logger.Infof("Delete %s:%s as it's creationdate %s is older then %s", *image.ImageId, *image.Name, *image.CreationDate, olderThenDate.String())
-					deregisterInput := &ec2.DeregisterImageInput{
-						ImageId: image.ImageId,
-						DryRun:  aws.Bool(a.dryrun),
-					}
-					_, err := a.ec2client.DeregisterImage(context.TODO(), deregisterInput)
-					CheckError(err, logger.Errorf)
-				} else {
-					logger.Infof("Keeping %s:%s as it's creationdate %s is newer then %s", *image.ImageId, *image.Name, *image.CreationDate, olderThenDate.String())
-				}
-			} else {
-				logger.Infof("Ignored %s\n", *image.ImageId)
-			}
-		} else {
-			logger.Infof("Skipping %s\n", *image.ImageId)
+	_, err := a.ec2.DeregisterImage(context.TODO(), deregisterInput)
+	return err
+}
+
+func (a AWS) GetAvailableEBSVolumes() []ec2Types.Volume {
+	volumes := []ec2Types.Volume{}
+	nextToken := ""
+
+	for {
+		opts := &ec2.DescribeVolumesInput{}
+		if nextToken != "" {
+			opts.NextToken = &nextToken
+		}
+		volumeOutput, err := a.ec2.DescribeVolumes(context.TODO(), opts)
+		CheckError(err, logger.Errorf)
+		if volumeOutput != nil {
+			volumes = append(volumes, volumeOutput.Volumes...)
+		}
+
+		if volumeOutput == nil || volumeOutput.NextToken == nil {
+			break
 		}
 	}
-	return nil
+	return volumes
+}
+
+func (a AWS) DeleteVolume(volumeId string, dryrun bool) error {
+
+	opts := &ec2.DeleteVolumeInput{
+		VolumeId: &volumeId,
+		DryRun:   &dryrun,
+	}
+
+	_, err := a.ec2.DeleteVolume(context.TODO(), opts)
+	return err
 }
 
 func CheckError(err error, logFunc func(tpl string, args ...interface{})) {

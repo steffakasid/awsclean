@@ -1,4 +1,4 @@
-= AMICLEAN - Cleanup unused and old AMIs on AWS
+= AWSCLEAN - Cleanup unused and old AMIs on AWS
 
 image:https://img.shields.io/badge/License-Apache%202.0-blue.svg[link="http://www.apache.org/licenses/LICENSE-2.0"]
 image:https://github.com/steffakasid/amiclean/actions/workflows/codeql-analysis.yml/badge.svg[link:https://github.com/steffakasid/amiclean/actions/workflows/codeql-analysis.yml]
@@ -14,25 +14,29 @@ This tool is intended to:
 
 == Usage
 
-`amiclean [flags]`
+`awsclean [command] [flags]`
 
 === Preqrequisites
 
-amiclean uses already provided credentials in ~/.aws/credentials also it uses the central configuration in ~/.aws/config!
+awsclean uses already provided credentials in ~/.aws/credentials also it uses the central configuration in ~/.aws/config!
 
 
 === Examples
-`amiclean` scan all AMIs owned by self and delete them if they are unused and older then 7 days.             
+`awsclean ami` scan all AMIs owned by self and delete them if they are unused and older then 7 days.             
 
-`amiclean --account 2451251` scan all AMIs of self and were AWS account 2451251 are owner
+`awsclean ami --account 2451251` scan all AMIs of self and were AWS account 2451251 are owner
 
-`amiclean --dry-run` do not delete anything just show what you would do
+`awsclean ami --dry-run` do not delete anything just show what you would do
 
-`amiclean --older-then 5w` delete all images which are older then 5w and are unused
+`awsclean ami --older-then 5w` delete all images which are older then 5w and are unused
 
-`amiclean --ignore ^amia.* --ignore ^amib.*` delete all images which name does not start with amia or amib
+`awsclean ami --ignore ^amia.* --ignore ^amib.*` delete all images which name does not start with amia or amib
 
-`amiclean --launch-templates` additionally scan launch templates for used AMIs
+`awsclean ami --launch-templates` additionally scan launch templates for used AMIs
+
+`awsclean ebs --older-then 5w` delete all EBS volumes which are older then 5w and are not bound
+
+`awsclean ebs --dry-run` do not delete any EBS volume just show what you would do
 
 === Filter Logic
 
@@ -58,5 +62,5 @@ In order to test the ec2client I used link:https://github.com/vektra/mockery[moc
 [source,sh]
 ----
 cd internal
-mockery --name Ec2client --with-expecter
+mockery --all --with-expecter
 ----
