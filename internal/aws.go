@@ -29,37 +29,24 @@ type AmiClean struct {
 	ignorePatterns []string
 }
 
-func NewInstance(
-	conf func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (cfg aws.Config, err error),
-	initFunc func(cfg aws.Config, optFns ...func(*ec2.Options)) *ec2.Client,
-	olderthen time.Duration, awsaccount string,
-	dryrun bool,
-	useLaunchTpls bool,
-	ignorePatterns []string) *AmiClean {
+type AWS struct {
+	ec2        Ec2client
+}
+
+func NewAWSClient(conf func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (cfg aws.Config, err error),
+	ec2InitFunc func(cfg aws.Config, optFns ...func(*ec2.Options)) *ec2.Client,
+	clouttrailInitFunc func(cfg aws.Config, optFns ...func(*cloudtrail.Options)) *cloudtrail.Client) *AWS {
+	aws := &AWS{}
 
 	cfg, err := conf(context.TODO())
 	CheckError(err, logger.Fatalf)
 
-	return &AmiClean{
-		ec2client:      initFunc(cfg),
-		olderthen:      olderthen,
-		awsaccount:     awsaccount,
-		dryrun:         dryrun,
-		useLaunchTpls:  useLaunchTpls,
-		usedAMIs:       []string{},
-		ignorePatterns: ignorePatterns,
-	}
+	aws.ec2 = ec2InitFunc(cfg)
+	aws.cloudtrail = clouttrailInitFunc(cfg)
+	return aws
 }
 
-func (a *AmiClean) GetUsedAMIs() {
-	a.getUsedAMIsFromEC2()
-
-	if a.useLaunchTpls {
-		a.getUsedAMIsFromLaunchTpls()
-	}
-}
-
-func (a *AmiClean) getUsedAMIsFromEC2() {
+func (a *AWS) getUsedAMIsFromEC2() []string {
 	usedImages := []string{}
 	nextToken := ""
 	for {
@@ -67,7 +54,7 @@ func (a *AmiClean) getUsedAMIsFromEC2() {
 		if nextToken != "" {
 			opts.NextToken = &nextToken
 		}
-		ec2Instances, err := a.ec2client.DescribeInstances(context.TODO(), opts)
+		ec2Instances, err := a.ec2.DescribeInstances(context.TODO(), opts)
 		CheckError(err, logger.Errorf)
 		if ec2Instances != nil {
 			for _, reserveration := range ec2Instances.Reservations {
@@ -83,10 +70,10 @@ func (a *AmiClean) getUsedAMIsFromEC2() {
 		nextToken = *ec2Instances.NextToken
 	}
 	logger.Debug("UsedImages[] from EC2", usedImages)
-	a.usedAMIs = append(a.usedAMIs, usedImages...)
+	return usedImages
 }
 
-func (a *AmiClean) getUsedAMIsFromLaunchTpls() {
+func (a *AWS) getUsedAMIsFromLaunchTpls() []string {
 	usedImages := []string{}
 	nextToken := ""
 	for {
@@ -96,7 +83,7 @@ func (a *AmiClean) getUsedAMIsFromLaunchTpls() {
 		if nextToken != "" {
 			opts.NextToken = &nextToken
 		}
-		launchTpls, err := a.ec2client.DescribeLaunchTemplateVersions(context.TODO(), opts)
+		launchTpls, err := a.ec2.DescribeLaunchTemplateVersions(context.TODO(), opts)
 		CheckError(err, logger.Errorf)
 		if launchTpls != nil {
 			for _, launchTplVersion := range launchTpls.LaunchTemplateVersions {
@@ -111,7 +98,8 @@ func (a *AmiClean) getUsedAMIsFromLaunchTpls() {
 		nextToken = *launchTpls.NextToken
 	}
 	logger.Debug("UsedImages[] from Launch Templates", usedImages)
-	a.usedAMIs = append(a.usedAMIs, usedImages...)
+	return usedImages
+}
 }
 
 func (a AmiClean) DeleteOlderUnusedAMIs() error {
