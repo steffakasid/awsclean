@@ -1,4 +1,4 @@
-package internal
+package amiclean
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/google/uuid"
+	"github.com/steffakasid/amiclean/internal"
 	"github.com/steffakasid/amiclean/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/xhit/go-str2duration/v2"
@@ -27,19 +28,16 @@ func TestNewInstance(t *testing.T) {
 	cloudtrailInitFunc := func(cfg aws.Config, optFns ...func(*cloudtrail.Options)) *cloudtrail.Client {
 		return &cloudtrail.Client{}
 	}
-	awsClient := NewAWSClient(confFunc, ec2InitFunc, cloudtrailInitFunc)
+	awsClient := internal.NewAWSClient(confFunc, ec2InitFunc, cloudtrailInitFunc)
 
 	amiclean := NewInstance(awsClient, 1, "1234", false, false, []string{})
 
 	assert.NotNil(t, amiclean)
-	assert.Implements(t, (*Ec2client)(nil), amiclean.awsClient.ec2)
-	assert.Implements(t, (*CloudTrailClient)(nil), amiclean.awsClient.cloudtrail)
 }
 
-func initAMIClean(ec2Mock *mocks.Ec2client, cloudtrailMock *mocks.CloudTrailClient) *AmiClean {
-
+func initAMIClean(ec2Mock *mocks.Ec2client) *AmiClean {
 	return &AmiClean{
-		awsClient: &AWS{ec2Mock, cloudtrailMock},
+		awsClient: internal.NewFromInterface(ec2Mock),
 	}
 }
 
@@ -48,7 +46,7 @@ func TestGetUsedAmis(t *testing.T) {
 		ec2Mock := &mocks.Ec2client{}
 		expectedAMIIDs := mockDescribeInstances(1, ec2Mock)
 
-		amiclean := initAMIClean(ec2Mock, nil)
+		amiclean := initAMIClean(ec2Mock)
 		amiclean.GetUsedAMIs()
 		assert.ElementsMatch(t, expectedAMIIDs, amiclean.usedAMIs)
 	})
@@ -57,7 +55,7 @@ func TestGetUsedAmis(t *testing.T) {
 		ec2Mock := &mocks.Ec2client{}
 		expectedAMIIDs := mockDescribeInstances(4, ec2Mock)
 
-		amiclean := initAMIClean(ec2Mock, nil)
+		amiclean := initAMIClean(ec2Mock)
 		amiclean.GetUsedAMIs()
 		assert.ElementsMatch(t, expectedAMIIDs, amiclean.usedAMIs)
 	})
@@ -67,7 +65,7 @@ func TestGetUsedAmis(t *testing.T) {
 		expectedAMIIDs := mockDescribeInstances(2, ec2Mock)
 		expectedAMIIDs = append(expectedAMIIDs, mockDescribeLaunchTemplateVersions(2, ec2Mock)...)
 
-		amiclean := initAMIClean(ec2Mock, nil)
+		amiclean := initAMIClean(ec2Mock)
 		amiclean.useLaunchTpls = true
 
 		amiclean.GetUsedAMIs()
@@ -78,7 +76,7 @@ func TestGetUsedAmis(t *testing.T) {
 		ec2Mock := &mocks.Ec2client{}
 		mockDescribeInstances(2, ec2Mock, 2)
 
-		amiclean := initAMIClean(ec2Mock, nil)
+		amiclean := initAMIClean(ec2Mock)
 
 		amiclean.GetUsedAMIs()
 		assert.Len(t, amiclean.usedAMIs, 3)
@@ -105,7 +103,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 
 		olderthen, err := str2duration.ParseDuration("7d")
 		assert.NoError(t, err)
-		amiclean := initAMIClean(ec2Mock, nil)
+		amiclean := initAMIClean(ec2Mock)
 		amiclean.olderthen = olderthen
 		amiclean.usedAMIs = []string{}
 
@@ -131,7 +129,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 
 		olderthen, err := str2duration.ParseDuration("7h")
 		assert.NoError(t, err)
-		amiclean := initAMIClean(ec2Mock, nil)
+		amiclean := initAMIClean(ec2Mock)
 		amiclean.awsaccount = "1234568"
 		amiclean.olderthen = olderthen
 		amiclean.usedAMIs = []string{}
@@ -159,7 +157,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		olderthen, err := str2duration.ParseDuration("7h")
 		assert.NoError(t, err)
 
-		amiclean := initAMIClean(ec2Mock, nil)
+		amiclean := initAMIClean(ec2Mock)
 		amiclean.awsaccount = "123456"
 		amiclean.olderthen = olderthen
 		amiclean.usedAMIs = []string{}
@@ -194,7 +192,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 
 		olderthen, err := str2duration.ParseDuration("7d")
 		assert.NoError(t, err)
-		amiclean := initAMIClean(ec2Mock, nil)
+		amiclean := initAMIClean(ec2Mock)
 		amiclean.awsaccount = "123456"
 		amiclean.olderthen = olderthen
 		amiclean.usedAMIs = []string{}
@@ -228,7 +226,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		olderthen, err := str2duration.ParseDuration("7h")
 		assert.NoError(t, err)
 
-		amiclean := initAMIClean(ec2Mock, nil)
+		amiclean := initAMIClean(ec2Mock)
 		amiclean.awsaccount = "123456"
 		amiclean.olderthen = olderthen
 		amiclean.usedAMIs = []string{"still-in-use-id"}
@@ -266,7 +264,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 
 		olderthen, err := str2duration.ParseDuration("7h")
 		assert.NoError(t, err)
-		amiclean := initAMIClean(ec2Mock, nil)
+		amiclean := initAMIClean(ec2Mock)
 		amiclean.awsaccount = "123456"
 		amiclean.olderthen = olderthen
 		amiclean.usedAMIs = []string{}
@@ -312,7 +310,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 
 		olderthen, err := str2duration.ParseDuration("7d")
 		assert.NoError(t, err)
-		amiclean := initAMIClean(ec2Mock, nil)
+		amiclean := initAMIClean(ec2Mock)
 		amiclean.awsaccount = "123456"
 		amiclean.olderthen = olderthen
 		amiclean.usedAMIs = []string{"in-use"}
@@ -331,7 +329,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		olderthen, err := str2duration.ParseDuration("7h")
 		assert.NoError(t, err)
 
-		amiclean := initAMIClean(ec2Mock, nil)
+		amiclean := initAMIClean(ec2Mock)
 		amiclean.awsaccount = "123456"
 		amiclean.olderthen = olderthen
 		amiclean.usedAMIs = []string{}
@@ -361,7 +359,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		olderthen, err := str2duration.ParseDuration("7h")
 		assert.NoError(t, err)
 
-		amiclean := initAMIClean(ec2Mock, nil)
+		amiclean := initAMIClean(ec2Mock)
 		amiclean.awsaccount = "123456"
 		amiclean.olderthen = olderthen
 		amiclean.usedAMIs = []string{}
@@ -430,7 +428,7 @@ func mockDescribeLaunchTemplateVersions(numCalls int, ec2Mock *mocks.Ec2client, 
 	for i := 1; i <= numCalls; i++ {
 		previousToken := nextToken
 
-		opts := ec2.DescribeLaunchTemplateVersionsInput{}
+		opts := ec2.DescribeLaunchTemplateVersionsInput{Versions: []string{"$Latest"}}
 		if previousToken != "" {
 			opts.NextToken = &previousToken
 		}
