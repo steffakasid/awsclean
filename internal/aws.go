@@ -90,7 +90,9 @@ func (a *AmiClean) getUsedAMIsFromLaunchTpls() {
 	usedImages := []string{}
 	nextToken := ""
 	for {
-		opts := &ec2.DescribeLaunchTemplateVersionsInput{}
+		opts := &ec2.DescribeLaunchTemplateVersionsInput{
+			Versions: []string{"$Latest"},
+		}
 		if nextToken != "" {
 			opts.NextToken = &nextToken
 		}

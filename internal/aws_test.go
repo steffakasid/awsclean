@@ -428,7 +428,7 @@ func mockDescribeLaunchTemplateVersions(numCalls int, ec2Mock *mocks.Ec2client, 
 	for i := 1; i <= numCalls; i++ {
 		previousToken := nextToken
 
-		opts := ec2.DescribeLaunchTemplateVersionsInput{}
+		opts := ec2.DescribeLaunchTemplateVersionsInput{Versions: []string{"$Latest"}}
 		if previousToken != "" {
 			opts.NextToken = &previousToken
 		}
