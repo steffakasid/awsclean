@@ -6,7 +6,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/smithy-go"
@@ -35,8 +34,7 @@ func NewFromInterface(ec2 Ec2client) *AWS {
 }
 
 func NewAWSClient(conf func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (cfg aws.Config, err error),
-	ec2InitFunc func(cfg aws.Config, optFns ...func(*ec2.Options)) *ec2.Client,
-	clouttrailInitFunc func(cfg aws.Config, optFns ...func(*cloudtrail.Options)) *cloudtrail.Client) *AWS {
+	ec2InitFunc func(cfg aws.Config, optFns ...func(*ec2.Options)) *ec2.Client) *AWS {
 	aws := &AWS{}
 
 	cfg, err := conf(context.TODO())
@@ -140,6 +138,7 @@ func (a AWS) GetAvailableEBSVolumes() []ec2Types.Volume {
 		if volumeOutput == nil || volumeOutput.NextToken == nil {
 			break
 		}
+		nextToken = *volumeOutput.NextToken
 	}
 	return volumes
 }
