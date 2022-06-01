@@ -8,7 +8,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/google/uuid"
@@ -25,10 +24,7 @@ func TestNewInstance(t *testing.T) {
 	ec2InitFunc := func(cfg aws.Config, optFns ...func(*ec2.Options)) *ec2.Client {
 		return &ec2.Client{}
 	}
-	cloudtrailInitFunc := func(cfg aws.Config, optFns ...func(*cloudtrail.Options)) *cloudtrail.Client {
-		return &cloudtrail.Client{}
-	}
-	awsClient := internal.NewAWSClient(confFunc, ec2InitFunc, cloudtrailInitFunc)
+	awsClient := internal.NewAWSClient(confFunc, ec2InitFunc)
 
 	amiclean := NewInstance(awsClient, 1, "1234", false, false, []string{})
 
