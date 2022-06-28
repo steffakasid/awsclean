@@ -41,7 +41,7 @@ require (
 require (
 	github.com/aws/aws-sdk-go-v2 v1.16.5
 	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.16.2
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.46.0
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.47.0
 	github.com/aws/smithy-go v1.11.3
 	github.com/google/uuid v1.3.0
 	github.com/sirupsen/logrus v1.8.1
