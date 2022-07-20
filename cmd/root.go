@@ -11,7 +11,6 @@ import (
 	logger "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/steffakasid/amiclean/internal"
 )
 
 const (
@@ -55,8 +54,7 @@ func init() {
 	peristentFlags.BoolP(dryrun, "d", false, "If set to true nothing will be deleted. And amiclean will just show what it would do!")
 	peristentFlags.StringP(olderthen, "o", "7d", "Set the duration string (e.g 5d, 1w etc.) how old AMIs must be to be deleted. E.g. if set to 7d, AMIs will be delete which are older then 7 days.")
 
-	err := viper.BindPFlags(peristentFlags)
-	internal.CheckError(err, logger.Fatalf)
+	cobra.CheckErr(viper.BindPFlags(peristentFlags))
 }
 
 // initConfig reads in config file and ENV variables if set.

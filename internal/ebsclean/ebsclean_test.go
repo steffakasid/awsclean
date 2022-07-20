@@ -29,7 +29,7 @@ func initEBSClean(ec2Mock *mocks.Ec2client, t *testing.T) *EBSClean {
 func TestNewInstance(t *testing.T) {
 	mock := &mocks.Ec2client{}
 	awsClient := internal.NewFromInterface(mock)
-	ebsclean := NewInstance(awsClient, time.Duration(1), false)
+	ebsclean := NewInstance(awsClient, time.Duration(1), false, false)
 	assert.NotNil(t, ebsclean)
 	assert.Equal(t, time.Duration(1), ebsclean.olderthen)
 	assert.False(t, ebsclean.dryrun)

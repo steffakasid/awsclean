@@ -51,12 +51,11 @@ Examples:
 func init() {
 	rootCmd.AddCommand(amiCmd)
 
-	flags := amiCmd.Flags()
+	amiFlags := amiCmd.Flags()
 
-	flags.StringArrayP(ignore, "i", []string{}, "Set ignore regex patterns. If a ami name matches the pattern it will be exclueded from cleanup.")
-	flags.BoolP(launchTpl, "l", false, "Additionally scan launch templates for used AMIs.")
-	flags.StringP(account, "a", "", "Set AWS account number to cleanup AMIs. Used to set owner information when selecting AMIs. If not set only 'self' is used.")
+	amiFlags.StringArrayP(ignore, "i", []string{}, "Set ignore regex patterns. If a ami name matches the pattern it will be exclueded from cleanup.")
+	amiFlags.BoolP(launchTpl, "l", false, "Additionally scan launch templates for used AMIs.")
+	amiFlags.StringP(account, "a", "", "Set AWS account number to cleanup AMIs. Used to set owner information when selecting AMIs. If not set only 'self' is used.")
 
-	err := viper.GetViper().BindPFlags(flags)
-	internal.CheckError(err, logger.Fatalf)
+	cobra.CheckErr(viper.GetViper().BindPFlags(amiFlags))
 }

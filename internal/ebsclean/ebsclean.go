@@ -13,13 +13,15 @@ type EBSClean struct {
 	awsClient *internal.AWS
 	olderthen time.Duration
 	dryrun    bool
+	showTags  bool
 }
 
-func NewInstance(awsClient *internal.AWS, olderthen time.Duration, dryrun bool) *EBSClean {
+func NewInstance(awsClient *internal.AWS, olderthen time.Duration, dryrun bool, showTags bool) *EBSClean {
 	return &EBSClean{
 		awsClient: awsClient,
 		olderthen: olderthen,
 		dryrun:    dryrun,
+		showTags:  showTags,
 	}
 }
 
@@ -34,20 +36,38 @@ func (e EBSClean) DeleteUnusedEBSVolumes() {
 	skipped := 0
 	filtered := 0
 	for _, volume := range ebsVolumes {
+		details := fmt.Sprintf("%s creationDate: %v\ttype: %s\tstate: %s\t", *volume.VolumeId, volume.CreateTime, volume.VolumeType, volume.State)
+		if e.showTags {
+			details += "\n\ttags:\t"
+			for i, tag := range volume.Tags {
+				var pattern string
+				if i == 0 {
+					pattern = "%s: %s\n"
+				} else if i == len(volume.Tags)-1 {
+					pattern = "\t\t%s: %s"
+				} else {
+					pattern = "\t\t%s: %s\n"
+				}
+				details += fmt.Sprintf(pattern, *tag.Key, *tag.Value)
+			}
+		}
 		if volume.State != types.VolumeStateInUse {
 			if volume.CreateTime.Before(olderThenDate) {
 				// now we could delete!
-				fmt.Printf("Delete %s creationDate %v type %s state %s\n", *volume.VolumeId, volume.CreateTime, volume.VolumeType, volume.State)
-				e.awsClient.DeleteVolume(*volume.VolumeId, e.dryrun)
+				fmt.Printf("Delete %s\n", details)
+				err := e.awsClient.DeleteVolume(*volume.VolumeId, e.dryrun)
+				if err != nil {
+					logger.Errorf("error deleting volume: %s", err)
+				}
+				fmt.Println()
 				deleted++
 			} else {
-				fmt.Printf("Skipping %s creationDate %v type %s state %s\n", *volume.VolumeId, volume.CreateTime, volume.VolumeType, volume.State)
+				fmt.Printf("Skipping %s\n\n", details)
 				skipped++
 			}
 		} else {
-			fmt.Printf("Filtered out %s creationDate %v type %s state %s\n", *volume.VolumeId, volume.CreateTime, volume.VolumeType, volume.State)
+			fmt.Printf("Filtered out %s\n\n", details)
 			filtered++
 		}
 	}
-	logger.Debugf("Deleted %d, Skipped %d, Filtered out %d EBS volumes", deleted, skipped, filtered)
 }

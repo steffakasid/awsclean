@@ -15,6 +15,10 @@ import (
 	"github.com/xhit/go-str2duration/v2"
 )
 
+const (
+	showtags = "show-tags"
+)
+
 // ebsCmd represents the ebs command
 var ebsCmd = &cobra.Command{
 	Use:   "ebs",
@@ -25,13 +29,14 @@ is set to 7 days.
 
 Examples:
   awsclean ebs --older-then 5w  delete all EBS volumes which are older then 5w and are not bound
-  awsclean ebs --dry-run        do not delete any EBS volume just show what you would do`,
+  awsclean ebs --dry-run        do not delete any EBS volume just show what you would do
+  awsclean ebs --show-tags      print out tags of EBS volumes`,
 	Run: func(cmd *cobra.Command, args []string) {
 		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
 		internal.CheckError(err, logger.Fatalf)
 
 		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig)
-		ebsclean := ebsclean.NewInstance(awsClient, olderthenDuration, viper.GetBool(dryrun))
+		ebsclean := ebsclean.NewInstance(awsClient, olderthenDuration, viper.GetBool(dryrun), viper.GetBool(showtags))
 
 		ebsclean.DeleteUnusedEBSVolumes()
 	},
@@ -39,4 +44,7 @@ Examples:
 
 func init() {
 	rootCmd.AddCommand(ebsCmd)
+	ebsFlags := ebsCmd.Flags()
+	ebsFlags.BoolP(showtags, "s", false, "show tags of ebs volumes")
+	cobra.CheckErr(viper.BindPFlags(ebsFlags))
 }
