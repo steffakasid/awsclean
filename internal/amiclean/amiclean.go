@@ -71,10 +71,10 @@ func (a AmiClean) DeleteOlderUnusedAMIs() error {
 					logger.Infof("Keeping %s:%s as it's creationdate %s is newer then %s", *image.ImageId, *image.Name, *image.CreationDate, olderThenDate.String())
 				}
 			} else {
-				logger.Infof("Ignored %s\n", *image.ImageId)
+				logger.Infof("Ignored %s", *image.ImageId)
 			}
 		} else {
-			logger.Infof("Skipping %s\n", *image.ImageId)
+			logger.Infof("Skipping %s", *image.ImageId)
 		}
 	}
 	return nil
