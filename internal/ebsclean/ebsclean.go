@@ -54,7 +54,7 @@ func (e EBSClean) DeleteUnusedEBSVolumes() {
 		if volume.State != types.VolumeStateInUse {
 			if volume.CreateTime.Before(olderThenDate) {
 				// now we could delete!
-				fmt.Printf("Delete %s\n", details)
+				logger.Infof("Delete %s", details)
 				err := e.awsClient.DeleteVolume(*volume.VolumeId, e.dryrun)
 				if err != nil {
 					logger.Errorf("error deleting volume: %s", err)
@@ -62,11 +62,13 @@ func (e EBSClean) DeleteUnusedEBSVolumes() {
 				fmt.Println()
 				deleted++
 			} else {
-				fmt.Printf("Skipping %s\n\n", details)
+				logger.Infof("Skipping %s", details)
+				fmt.Println()
 				skipped++
 			}
 		} else {
-			fmt.Printf("Filtered out %s\n\n", details)
+			logger.Infof("Filtered out %s\n\n", details)
+			fmt.Println()
 			filtered++
 		}
 	}
