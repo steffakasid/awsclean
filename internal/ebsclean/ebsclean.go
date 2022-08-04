@@ -72,4 +72,5 @@ func (e EBSClean) DeleteUnusedEBSVolumes() {
 			filtered++
 		}
 	}
+	logger.Infof("Deleted %d, Skipped %d, Filtered out %d EBS volumes", deleted, skipped, filtered)
 }
