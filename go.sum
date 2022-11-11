@@ -92,6 +92,8 @@ github.com/aws/aws-sdk-go-v2/config v1.17.10 h1:zBy5QQ/mkvHElM1rygHPAzuH+sl8nsdS
 github.com/aws/aws-sdk-go-v2/config v1.17.10/go.mod h1:/4np+UiJJKpWHN7Q+LZvqXYgyjgeXm5+lLfDI6TPZao=
 github.com/aws/aws-sdk-go-v2/config v1.17.11 h1:9JQUKwRN8oUqeOFIrNaH6RSPmmcNk1+bQrDka/f/bPc=
 github.com/aws/aws-sdk-go-v2/config v1.17.11/go.mod h1:cw6HIEr0FaZQfcoyRWYZpMfv4qAH19hZFZ5mglwWo3g=
+github.com/aws/aws-sdk-go-v2/config v1.18.0 h1:ULASZmfhKR/QE9UeZ7mzYjUzsnIydy/K1YMT6uH1KC0=
+github.com/aws/aws-sdk-go-v2/config v1.18.0/go.mod h1:H13DRX9Nv5tAcQvPABrE3dm5XnLp1RC7fVSM3OWiLvA=
 github.com/aws/aws-sdk-go-v2/credentials v1.12.9 h1:DloAJr0/jbvm0iVRFDFh8GlWxrOd9XKyX82U+dfVeZs=
 github.com/aws/aws-sdk-go-v2/credentials v1.12.9/go.mod h1:2Vavxl1qqQXJ8MUcQZTsIEW8cwenFCWYXtLRPba3L/o=
 github.com/aws/aws-sdk-go-v2/credentials v1.12.10 h1:7gGcMQePejwiKoDWjB9cWnpfVdnz/e5JwJFuT6OrroI=
@@ -122,6 +124,8 @@ github.com/aws/aws-sdk-go-v2/credentials v1.12.23 h1:LctvcJMIb8pxvk5hQhChpCu0WlU
 github.com/aws/aws-sdk-go-v2/credentials v1.12.23/go.mod h1:0awX9iRr/+UO7OwRQFpV1hNtXxOVuehpjVEzrIAYNcA=
 github.com/aws/aws-sdk-go-v2/credentials v1.12.24 h1:yz4fhoMfgwymG0rU6q5eCydFhYNQxk9yrNjMA7L7xmg=
 github.com/aws/aws-sdk-go-v2/credentials v1.12.24/go.mod h1:prZpUfBu1KZLBLVX482Sq4DpDXGugAre08TPEc21GUg=
+github.com/aws/aws-sdk-go-v2/credentials v1.13.0 h1:W5f73j1qurASap+jdScUo4aGzSXxaC7wq1i7CiwhvU8=
+github.com/aws/aws-sdk-go-v2/credentials v1.13.0/go.mod h1:prZpUfBu1KZLBLVX482Sq4DpDXGugAre08TPEc21GUg=
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.8 h1:VfBdn2AxwMbFyJN/lF/xuT3SakomJ86PZu3rCxb5K0s=
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.8/go.mod h1:oL1Q3KuCq1D4NykQnIvtRiBGLUXhcpY5pl6QZB2XEPU=
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.9 h1:hz8tc+OW17YqxyFFPSkvfSikbqWcyyHRyPVSTzC0+aI=
