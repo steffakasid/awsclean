@@ -388,6 +388,8 @@ github.com/aws/aws-sdk-go-v2/service/ec2 v1.82.0 h1:A+wxNcTH3pXjsBC+eg6drvA0xbHk
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.82.0/go.mod h1:mV0E7631M1eXdB+tlGFIw6JxfsC7Pz7+7Aw15oLVhZw=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.83.0 h1:6eTsq8mUG4VCrqbebRYVtgkKguP9J2veJHuhdISMM+Y=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.83.0/go.mod h1:mV0E7631M1eXdB+tlGFIw6JxfsC7Pz7+7Aw15oLVhZw=
+github.com/aws/aws-sdk-go-v2/service/ec2 v1.84.0 h1:x7kLeAQCNg5UGEJdIgKIOMl9Zvkdmxk5adYWGFwPHus=
+github.com/aws/aws-sdk-go-v2/service/ec2 v1.84.0/go.mod h1:mV0E7631M1eXdB+tlGFIw6JxfsC7Pz7+7Aw15oLVhZw=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.8 h1:oKnAXxSF2FUvfgw8uzU/v9OTYorJJZ8eBmWhr9TWVVQ=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.8/go.mod h1:rDVhIMAX9N2r8nWxDUlbubvvaFMnfsm+3jAV7q+rpM4=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.9 h1:sHfDuhbOuuWSIAEDd3pma6p0JgUcR2iePxtCE8gfCxQ=
