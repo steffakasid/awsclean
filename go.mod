@@ -3,13 +3,13 @@ module github.com/steffakasid/amiclean
 go 1.19
 
 require (
-	github.com/aws/aws-sdk-go-v2/config v1.18.16
+	github.com/aws/aws-sdk-go-v2/config v1.18.17
 	github.com/xhit/go-str2duration/v2 v2.1.0
 )
 
 require (
-	github.com/aws/aws-sdk-go-v2/credentials v1.13.16 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.24 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.13.17 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.13.0 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.30 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.24 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.31 // indirect
@@ -43,7 +43,7 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.17.6
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.89.1
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.90.0
 	github.com/aws/smithy-go v1.13.5
 	github.com/google/uuid v1.3.0
 	github.com/sirupsen/logrus v1.9.0
