@@ -3,7 +3,7 @@ module github.com/steffakasid/amiclean
 go 1.19
 
 require (
-	github.com/aws/aws-sdk-go-v2/config v1.18.17
+	github.com/aws/aws-sdk-go-v2/config v1.18.18
 	github.com/xhit/go-str2duration/v2 v2.1.0
 )
 
