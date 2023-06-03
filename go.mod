@@ -46,7 +46,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.98.0
 	github.com/aws/smithy-go v1.13.5
 	github.com/google/uuid v1.3.0
-	github.com/sirupsen/logrus v1.9.2
+	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.8.4
