@@ -43,7 +43,7 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.18.1
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.100.1
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.101.0
 	github.com/aws/smithy-go v1.13.5
 	github.com/google/uuid v1.3.0
 	github.com/sirupsen/logrus v1.9.3
