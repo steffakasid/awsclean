@@ -13,5 +13,13 @@
       "automerge": true,
       "groupName": "Dependencies (major)"
     }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^.*go$"],
+      "matchStrings": ["\/\/go:generate go run (?<depName>.+?)@(?<currentValue>.*?)\n$"],
+      "datasource": "go"
+    }
   ]
 }
