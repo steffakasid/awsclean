@@ -37,7 +37,6 @@ Examples:
 	Run: func(cmd *cobra.Command, args []string) {
 		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
 		internal.CheckError(err, logger.Fatalf)
-
 		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig)
 
 		amiclean := amiclean.NewInstance(awsClient, olderthenDuration, viper.GetString(account), viper.GetBool(dryrun), viper.GetBool(launchTpl), viper.GetStringSlice(ignore))

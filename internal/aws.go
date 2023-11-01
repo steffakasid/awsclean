@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -19,6 +20,9 @@ type Ec2client interface {
 	DescribeImages(ctx context.Context, params *ec2.DescribeImagesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeImagesOutput, error)
 	DeregisterImage(ctx context.Context, params *ec2.DeregisterImageInput, optFns ...func(*ec2.Options)) (*ec2.DeregisterImageOutput, error)
 	DescribeLaunchTemplateVersions(ctx context.Context, params *ec2.DescribeLaunchTemplateVersionsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeLaunchTemplateVersionsOutput, error)
+	DescribeNetworkInterfaces(ctx context.Context, params *ec2.DescribeNetworkInterfacesInput, opftFns ...func(*ec2.Options)) (*ec2.DescribeNetworkInterfacesOutput, error)
+	DescribeSecurityGroups(ctx context.Context, params *ec2.DescribeSecurityGroupsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeSecurityGroupsOutput, error)
+	DeleteSecurityGroup(ctx context.Context, params *ec2.DeleteSecurityGroupInput, optFns ...func(*ec2.Options)) (*ec2.DeleteSecurityGroupOutput, error)
 	DescribeVolumes(ctx context.Context, params *ec2.DescribeVolumesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeVolumesOutput, error)
 	DeleteVolume(ctx context.Context, params *ec2.DeleteVolumeInput, optFns ...func(*ec2.Options)) (*ec2.DeleteVolumeOutput, error)
 }
@@ -42,6 +46,67 @@ func NewAWSClient(conf func(ctx context.Context, optFns ...func(*config.LoadOpti
 
 	aws.ec2 = ec2InitFunc(cfg)
 	return aws
+}
+
+func (a *AWS) GetSecurityGroups() []string {
+	secGrps := []string{}
+	secGrpIds := []string{}
+
+	in := &ec2.DescribeSecurityGroupsInput{
+		DryRun:     aws.Bool(false),
+		MaxResults: aws.Int32(100),
+	}
+
+	paginator := ec2.NewDescribeSecurityGroupsPaginator(a.ec2, in)
+	for paginator.HasMorePages() {
+		out, err := a.ec2.DescribeSecurityGroups(context.TODO(), in)
+		CheckError(err, logger.Fatalf)
+		if out.NextToken != nil {
+			in.NextToken = out.NextToken
+		} else {
+			break
+		}
+
+		for _, secGrp := range out.SecurityGroups {
+			secGrps = UniqueAppend(secGrps, *secGrp.GroupName)
+			secGrpIds = UniqueAppend(secGrpIds, *secGrp.GroupId)
+		}
+	}
+
+	logger.Debug("SecurityGroups[]:", secGrps)
+	return secGrpIds
+}
+
+func (a *AWS) GetNotUsedSecGrpsFromENI(secGrpIds []string) []string {
+	notUseSecGrpIDs := []string{}
+
+	for _, secGrpId := range secGrpIds {
+
+		in := &ec2.DescribeNetworkInterfacesInput{
+			DryRun: aws.Bool(false),
+			Filters: []ec2Types.Filter{
+				{
+					Values: []string{fmt.Sprintf("Name=%s", secGrpId)},
+				},
+			},
+		}
+
+		out, err := a.ec2.DescribeNetworkInterfaces(context.TODO(), in)
+		CheckError(err, logger.Errorf)
+		if len(out.NetworkInterfaces) == 0 {
+			logger.Debug("No ENI attached to group with ID: ", secGrpId)
+			notUseSecGrpIDs = UniqueAppend(notUseSecGrpIDs, secGrpId)
+		}
+	}
+	return notUseSecGrpIDs
+}
+
+func (a *AWS) DeleteSecurityGroup(secGrpID string) error {
+
+	input := &ec2.DeleteSecurityGroupInput{}
+
+	_, err := a.ec2.DeleteSecurityGroup(context.TODO(), input)
+	return err
 }
 
 func (a *AWS) GetUsedAMIsFromEC2() []string {
