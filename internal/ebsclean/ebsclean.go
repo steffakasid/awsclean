@@ -5,72 +5,78 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	logger "github.com/sirupsen/logrus"
 	"github.com/steffakasid/awsclean/internal"
+	eslog "github.com/steffakasid/eslog"
 )
 
 type EBSClean struct {
-	awsClient *internal.AWS
-	olderthen time.Duration
-	dryrun    bool
-	showTags  bool
+	awsClient     *internal.AWS
+	olderthen     time.Duration
+	dryrun        bool
+	onlyUnused    bool
+	usedVolumes   []types.Volume
+	unusedVolumes []types.Volume
 }
 
-func NewInstance(awsClient *internal.AWS, olderthen time.Duration, dryrun bool, showTags bool) *EBSClean {
+func NewInstance(awsClient *internal.AWS, olderthen time.Duration, dryrun bool, onlyunused bool) *EBSClean {
 	return &EBSClean{
-		awsClient: awsClient,
-		olderthen: olderthen,
-		dryrun:    dryrun,
-		showTags:  showTags,
+		awsClient:  awsClient,
+		olderthen:  olderthen,
+		dryrun:     dryrun,
+		onlyUnused: onlyunused,
 	}
+}
+
+func (e *EBSClean) GetEBSVolumes() {
+	allVolumes := e.awsClient.GetAvailableEBSVolumes()
+
+	for _, volume := range allVolumes {
+		if volume.State != types.VolumeStateInUse {
+			e.unusedVolumes = append(e.unusedVolumes, volume)
+		} else {
+			e.usedVolumes = append(e.usedVolumes, volume)
+			eslog.Logger.Infof("In use:%s", *volume.VolumeId)
+		}
+	}
+}
+
+func (e EBSClean) GetAllVolumes() []types.Volume {
+	all := []types.Volume{}
+
+	all = append(all, e.unusedVolumes...)
+	if !e.onlyUnused {
+		all = append(all, e.usedVolumes...)
+	}
+
+	return all
 }
 
 func (e EBSClean) DeleteUnusedEBSVolumes() {
-	ebsVolumes := e.awsClient.GetAvailableEBSVolumes()
-
-	today := time.Now()
-	olderThenDate := today.Add(e.olderthen * -1)
-	logger.Debugf("OlderThenDate %v", olderThenDate)
+	e.GetEBSVolumes()
 
 	deleted := 0
 	skipped := 0
-	filtered := 0
-	for _, volume := range ebsVolumes {
-		details := fmt.Sprintf("%s creationDate: %v\ttype: %s\tstate: %s\t", *volume.VolumeId, volume.CreateTime, volume.VolumeType, volume.State)
-		if e.showTags {
-			details += "\n\ttags:\t"
-			for i, tag := range volume.Tags {
-				var pattern string
-				if i == 0 {
-					pattern = "%s: %s\n"
-				} else if i == len(volume.Tags)-1 {
-					pattern = "\t\t%s: %s"
-				} else {
-					pattern = "\t\t%s: %s\n"
-				}
-				details += fmt.Sprintf(pattern, *tag.Key, *tag.Value)
+
+	today := time.Now()
+	olderThenDate := today.Add(e.olderthen * -1)
+	eslog.Logger.Debugf("OlderThenDate %v", olderThenDate)
+
+	for _, volume := range e.unusedVolumes {
+
+		if volume.CreateTime.Before(olderThenDate) {
+			eslog.Logger.Infof("Delete %s", *volume.VolumeId)
+			err := e.awsClient.DeleteVolume(*volume.VolumeId, e.dryrun)
+			if err != nil {
+				eslog.LogIfErrorf(err, eslog.Errorf, "error deleting volume: %s")
 			}
-		}
-		if volume.State != types.VolumeStateInUse {
-			if volume.CreateTime.Before(olderThenDate) {
-				// now we could delete!
-				logger.Infof("Delete %s", details)
-				err := e.awsClient.DeleteVolume(*volume.VolumeId, e.dryrun)
-				if err != nil {
-					logger.Errorf("error deleting volume: %s", err)
-				}
-				fmt.Println()
-				deleted++
-			} else {
-				logger.Infof("Skipping %s", details)
-				fmt.Println()
-				skipped++
-			}
-		} else {
-			logger.Infof("Filtered out %s\n\n", details)
 			fmt.Println()
-			filtered++
+			deleted++
+		} else {
+			eslog.Logger.Infof("Skipping %s", *volume.VolumeId)
+			fmt.Println()
+			skipped++
 		}
 	}
-	logger.Infof("Deleted %d, Skipped %d, Filtered out %d EBS volumes", deleted, skipped, filtered)
+
+	eslog.Logger.Infof("Deleted %d, Skipped %d EBS volumes", deleted, skipped)
 }
