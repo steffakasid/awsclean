@@ -13,8 +13,6 @@ import (
 	logger "github.com/sirupsen/logrus"
 )
 
-const awsEC2Volume = "AWS::EC2::Volume"
-
 type Ec2client interface {
 	DescribeInstances(ctx context.Context, params *ec2.DescribeInstancesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeInstancesOutput, error)
 	DescribeImages(ctx context.Context, params *ec2.DescribeImagesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeImagesOutput, error)
