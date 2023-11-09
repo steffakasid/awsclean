@@ -59,8 +59,16 @@ awsclean uses already provided credentials in ~/.aws/credentials also it uses th
 
 In order to test the ec2client I used link:https://github.com/vektra/mockery[mockery] to create the mocks:
 
+.To generate the mocks. Just run:
 [source,sh]
 ----
-cd internal
-mockery --all --with-expecter
+go generate ./...
+----
+
+The mockery configuration is done in:
+
+..mockery.yaml
+[source, yaml]
+----
+include::.mockery.yaml[]
 ----

@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@v2.36.1
+
 func TestGetUsedAMIsFromEC2(t *testing.T) {
 
 }

@@ -1,0 +1,10 @@
+with-expecter: True
+packages:
+  github.com/steffakasid/amiclean/internal:
+    interfaces:
+      Ec2client:
+        configs:
+          - mockname: Ec2client
+            filename: "{{.InterfaceName}}.go"
+            dir: "mocks"
+            outpkg: "mocks"
