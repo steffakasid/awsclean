@@ -24,11 +24,11 @@ func NewInstance(awsClient *internal.AWS, olderthen time.Duration, dryrun bool, 
 }
 
 func (sec *SecGrp) DeleteUnusedSecurityGroups() {
-	secGrpIDs := sec.awsClient.GetSecurityGroups()
-	notUsed := sec.awsClient.GetNotUsedSecGrpsFromENI(secGrpIDs)
+	secGrpIDs := sec.awsClient.GetSecurityGroups(sec.dryrun)
+	notUsed := sec.awsClient.GetNotUsedSecGrpsFromENI(secGrpIDs, sec.dryrun)
 	if !sec.dryrun {
 		for _, secGrpID := range notUsed {
-			err := sec.awsClient.DeleteSecurityGroup(secGrpID)
+			err := sec.awsClient.DeleteSecurityGroup(secGrpID, sec.dryrun)
 			logger.Errorf("error deleting security group: %s", err)
 		}
 	}

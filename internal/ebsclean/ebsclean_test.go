@@ -36,10 +36,12 @@ func TestNewInstance(t *testing.T) {
 }
 
 func TestDeleteUnusedEBSVolumes(t *testing.T) {
-	deleteWhenOlder, err := str2duration.ParseDuration("7d1h")
+	deleteWhenOlder, err := str2duration.ParseDuration("8d")
 	assert.NoError(t, err)
+
 	t.Run("success", func(t *testing.T) {
 		mock := &mocks.Ec2client{}
+		// should do two describe calls and four delete calls (two delete per describe)
 		toDelete := mockDescribeVolumes(2, 2, deleteWhenOlder, mock)
 		mockDeleteVolume(toDelete, false, mock)
 		SUT := initEBSClean(mock, t)
@@ -71,7 +73,7 @@ func mockDescribeVolumes(numCalls int, numDelete int, before time.Duration, mock
 		}
 		for i := 1; i <= numDelete; i++ {
 			id := fmt.Sprintf("i-abcde%d", rand.Int())
-			createTime := time.Now().Add(before * time.Duration(rand.Intn(numDelete)) * -1)
+			createTime := time.Now().Add(before * -1)
 			vol := types.Volume{
 				VolumeId:   aws.String(id),
 				CreateTime: aws.Time(createTime),

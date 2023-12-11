@@ -46,28 +46,28 @@ func NewAWSClient(conf func(ctx context.Context, optFns ...func(*config.LoadOpti
 	return aws
 }
 
-func (a *AWS) GetSecurityGroups() []string {
+func (a *AWS) GetSecurityGroups(dryRun bool) []string {
 	secGrps := []string{}
 	secGrpIds := []string{}
 
 	in := &ec2.DescribeSecurityGroupsInput{
-		DryRun:     aws.Bool(false),
+		DryRun:     aws.Bool(dryRun),
 		MaxResults: aws.Int32(100),
 	}
 
-	paginator := ec2.NewDescribeSecurityGroupsPaginator(a.ec2, in)
-	for paginator.HasMorePages() {
+	for {
 		out, err := a.ec2.DescribeSecurityGroups(context.TODO(), in)
 		CheckError(err, logger.Fatalf)
-		if out.NextToken != nil {
-			in.NextToken = out.NextToken
-		} else {
-			break
-		}
 
 		for _, secGrp := range out.SecurityGroups {
 			secGrps = UniqueAppend(secGrps, *secGrp.GroupName)
 			secGrpIds = UniqueAppend(secGrpIds, *secGrp.GroupId)
+		}
+
+		if out.NextToken != nil {
+			in.NextToken = out.NextToken
+		} else {
+			break
 		}
 	}
 
@@ -75,13 +75,13 @@ func (a *AWS) GetSecurityGroups() []string {
 	return secGrpIds
 }
 
-func (a *AWS) GetNotUsedSecGrpsFromENI(secGrpIds []string) []string {
+func (a *AWS) GetNotUsedSecGrpsFromENI(secGrpIds []string, dryRun bool) []string {
 	notUseSecGrpIDs := []string{}
 
 	for _, secGrpId := range secGrpIds {
 
 		in := &ec2.DescribeNetworkInterfacesInput{
-			DryRun: aws.Bool(false),
+			DryRun: aws.Bool(dryRun),
 			Filters: []ec2Types.Filter{
 				{
 					Values: []string{fmt.Sprintf("Name=%s", secGrpId)},
@@ -99,9 +99,12 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrpIds []string) []string {
 	return notUseSecGrpIDs
 }
 
-func (a *AWS) DeleteSecurityGroup(secGrpID string) error {
+func (a *AWS) DeleteSecurityGroup(secGrpID string, dryrun bool) error {
 
-	input := &ec2.DeleteSecurityGroupInput{}
+	input := &ec2.DeleteSecurityGroupInput{
+		DryRun:  &dryrun,
+		GroupId: &secGrpID,
+	}
 
 	_, err := a.ec2.DeleteSecurityGroup(context.TODO(), input)
 	return err

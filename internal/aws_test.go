@@ -1,36 +1,292 @@
 package internal
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/smithy-go"
+	"github.com/steffakasid/amiclean/internal/mocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 //go:generate go run github.com/vektra/mockery/v2@v2.36.1
 
+func setupSUT() (*AWS, *mocks.Ec2client) {
+	ec2ClientMock := &mocks.Ec2client{}
+	SUT := NewFromInterface(ec2ClientMock)
+	return SUT, ec2ClientMock
+}
+
+func TestGetSecurityGroups(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		dryRun := false
+		expectedToken := "expected next token"
+
+		SUT, mock := setupSUT()
+
+		expectedOpts := &ec2.DescribeSecurityGroupsInput{
+			DryRun:     aws.Bool(dryRun),
+			MaxResults: aws.Int32(100),
+		}
+		expectedOut := &ec2.DescribeSecurityGroupsOutput{
+			NextToken: &expectedToken,
+			SecurityGroups: []types.SecurityGroup{
+				{
+					GroupId:   aws.String("1234"),
+					GroupName: aws.String("some name"),
+				},
+			},
+		}
+		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts).Return(expectedOut, nil).Once()
+		expectedOpts2 := &ec2.DescribeSecurityGroupsInput{
+			DryRun:     aws.Bool(dryRun),
+			MaxResults: aws.Int32(100),
+			NextToken:  aws.String(expectedToken),
+		}
+		expectedOut2 := &ec2.DescribeSecurityGroupsOutput{
+			SecurityGroups: []types.SecurityGroup{
+				{
+					GroupId:   aws.String("5678"),
+					GroupName: aws.String("some name"),
+				},
+			},
+		}
+		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts2).Return(expectedOut2, nil).Once()
+
+		secGrps := SUT.GetSecurityGroups(dryRun)
+		assert.Len(t, secGrps, 2)
+	})
+}
+
+func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
+
+	t.Run("Success", func(t *testing.T) {
+		dryRun := false
+		expectedGrpID1 := "1234"
+		expectedGrpID2 := "5678"
+
+		SUT, mock := setupSUT()
+
+		expectedOpts1 := &ec2.DescribeNetworkInterfacesInput{
+			DryRun: aws.Bool(dryRun),
+			Filters: []types.Filter{
+				{
+					Values: []string{fmt.Sprintf("Name=%s", expectedGrpID1)}},
+			},
+		}
+		expectedOut1 := ec2.DescribeNetworkInterfacesOutput{
+			NetworkInterfaces: []types.NetworkInterface{
+				{
+					MacAddress: aws.String("1"),
+				},
+			},
+		}
+		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts1).Return(&expectedOut1, nil).Once()
+		expectedOpts2 := &ec2.DescribeNetworkInterfacesInput{
+			DryRun: aws.Bool(dryRun),
+			Filters: []types.Filter{
+				{
+					Values: []string{fmt.Sprintf("Name=%s", expectedGrpID2)}},
+			},
+		}
+		expectedOut2 := ec2.DescribeNetworkInterfacesOutput{
+			NetworkInterfaces: []types.NetworkInterface{
+				{
+					MacAddress: aws.String("2"),
+				},
+			},
+		}
+		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts2).Return(&expectedOut2, nil).Once()
+
+		notUsedSecGrps := SUT.GetNotUsedSecGrpsFromENI([]string{"1234", "5678"}, dryRun)
+		assert.Len(t, notUsedSecGrps, 0)
+	})
+}
+
+func TestDeleteSecurityGroup(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		expectedSecGrpID := "13210-41231-21-23212-3123"
+		dryRun := false
+
+		SUT, mock := setupSUT()
+		expectedOpts := &ec2.DeleteSecurityGroupInput{
+			DryRun:  &dryRun,
+			GroupId: &expectedSecGrpID,
+		}
+
+		mock.EXPECT().DeleteSecurityGroup(context.TODO(), expectedOpts).Return(&ec2.DeleteSecurityGroupOutput{}, nil).Once()
+
+		err := SUT.DeleteSecurityGroup(expectedSecGrpID, dryRun)
+		require.NoError(t, err)
+	})
+}
+
 func TestGetUsedAMIsFromEC2(t *testing.T) {
 
+	t.Run("Success", func(t *testing.T) {
+		expectedToken := "expected next token"
+
+		SUT, mock := setupSUT()
+
+		expectedOpts1 := &ec2.DescribeInstancesInput{}
+		expectedOutput1 := &ec2.DescribeInstancesOutput{
+			NextToken: &expectedToken,
+			Reservations: []types.Reservation{
+				{
+					Instances: []types.Instance{
+						{
+							ImageId: aws.String("1234"),
+						},
+					},
+				},
+			},
+		}
+		mock.EXPECT().DescribeInstances(context.TODO(), expectedOpts1).Return(expectedOutput1, nil).Once()
+		expectedOpts2 := &ec2.DescribeInstancesInput{
+			NextToken: &expectedToken,
+		}
+		expectedOutput2 := &ec2.DescribeInstancesOutput{
+			Reservations: []types.Reservation{
+				{
+					Instances: []types.Instance{
+						{
+							ImageId: aws.String("5678"),
+						},
+					},
+				},
+			},
+		}
+		mock.EXPECT().DescribeInstances(context.TODO(), expectedOpts2).Return(expectedOutput2, nil).Once()
+
+		usedAMIs := SUT.GetUsedAMIsFromEC2()
+		assert.Len(t, usedAMIs, 2)
+
+	})
 }
 
 func TestGetUsedAMIsFromLaunchTpls(t *testing.T) {
 
+	t.Run("Success", func(t *testing.T) {
+		expectedNextToken := "expected next token"
+
+		SUT, mock := setupSUT()
+
+		expectedOpts1 := &ec2.DescribeLaunchTemplateVersionsInput{
+			Versions: []string{"$Latest"},
+		}
+		expectedOutput1 := &ec2.DescribeLaunchTemplateVersionsOutput{
+			NextToken: &expectedNextToken,
+			LaunchTemplateVersions: []types.LaunchTemplateVersion{
+				{
+					LaunchTemplateData: &types.ResponseLaunchTemplateData{ImageId: aws.String("1234")},
+				},
+			},
+		}
+		mock.EXPECT().DescribeLaunchTemplateVersions(context.TODO(), expectedOpts1).Return(expectedOutput1, nil).Once()
+		expectedOpts2 := &ec2.DescribeLaunchTemplateVersionsInput{
+			Versions:  []string{"$Latest"},
+			NextToken: &expectedNextToken,
+		}
+		expectedOutput2 := &ec2.DescribeLaunchTemplateVersionsOutput{
+			LaunchTemplateVersions: []types.LaunchTemplateVersion{
+				{
+					LaunchTemplateData: &types.ResponseLaunchTemplateData{ImageId: aws.String("5678")},
+				},
+			},
+		}
+		mock.EXPECT().DescribeLaunchTemplateVersions(context.TODO(), expectedOpts2).Return(expectedOutput2, nil).Once()
+
+		usedAmis := SUT.GetUsedAMIsFromLaunchTpls()
+		assert.Len(t, usedAmis, 2)
+	})
 }
 
 func TestDescribeImages(t *testing.T) {
 
+	t.Run("Success", func(t *testing.T) {
+		expetedAccountID := "1234567890"
+
+		SUT, mock := setupSUT()
+		expectedOpts := &ec2.DescribeImagesInput{
+			Owners: []string{"self", expetedAccountID},
+		}
+		mock.EXPECT().DescribeImages(context.TODO(), expectedOpts).Return(&ec2.DescribeImagesOutput{Images: []types.Image{}}, nil).Once()
+
+		out, err := SUT.DescribeImages(expetedAccountID)
+		require.NoError(t, err)
+		assert.NotNil(t, out)
+	})
 }
 
 func TestDeregisterImage(t *testing.T) {
 
+	t.Run("Success", func(t *testing.T) {
+		expectedImageID := "1234-543-23ffs"
+		dryRun := false
+
+		SUT, mock := setupSUT()
+
+		expectedOpts := &ec2.DeregisterImageInput{
+			ImageId: &expectedImageID,
+			DryRun:  &dryRun,
+		}
+		mock.EXPECT().DeregisterImage(context.TODO(), expectedOpts).Return(&ec2.DeregisterImageOutput{}, nil).Once()
+
+		err := SUT.DeregisterImage(expectedImageID, dryRun)
+		require.NoError(t, err)
+	})
 }
 
 func TestGetAvailableEBSVolumes(t *testing.T) {
 
+	t.Run("Success", func(t *testing.T) {
+		SUT, mock := setupSUT()
+
+		expectedNextToken := "12345"
+		expectedOpts1 := &ec2.DescribeVolumesInput{}
+		expectedOutput1 := &ec2.DescribeVolumesOutput{
+			NextToken: &expectedNextToken,
+			Volumes: []types.Volume{
+				{},
+				{},
+			},
+		}
+		mock.EXPECT().DescribeVolumes(context.TODO(), expectedOpts1).Return(expectedOutput1, nil).Once()
+		expectedOpts2 := &ec2.DescribeVolumesInput{
+			NextToken: &expectedNextToken,
+		}
+		expectedOutput2 := &ec2.DescribeVolumesOutput{}
+		mock.EXPECT().DescribeVolumes(context.TODO(), expectedOpts2).Return(expectedOutput2, nil).Once()
+
+		volumes := SUT.GetAvailableEBSVolumes()
+		assert.Len(t, volumes, 2)
+	})
+
 }
 
 func TestDeleteVolume(t *testing.T) {
+
+	t.Run("Success", func(t *testing.T) {
+		volumeID := "1234-44555-23456"
+		dryRun := false
+
+		SUT, mock := setupSUT()
+
+		expectedOpts := &ec2.DeleteVolumeInput{
+			VolumeId: &volumeID,
+			DryRun:   &dryRun,
+		}
+		mock.EXPECT().DeleteVolume(context.TODO(), expectedOpts).Return(&ec2.DeleteVolumeOutput{}, nil).Once()
+
+		err := SUT.DeleteVolume(volumeID, dryRun)
+		require.NoError(t, err)
+	})
 
 }
 

@@ -14,6 +14,7 @@ import (
 	"github.com/steffakasid/awsclean/internal"
 	"github.com/steffakasid/awsclean/internal/mocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/xhit/go-str2duration/v2"
 )
 
@@ -167,6 +168,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		ec2Mock := &mocks.Ec2client{}
 		input := &ec2.DescribeImagesInput{Owners: []string{"self", "123456"}}
 		sixdays, err := str2duration.ParseDuration("6d")
+		require.NoError(t, err)
 		creationDate := time.Now().Add(sixdays * -1).Format("2006-01-02T15:04:05.000Z")
 		response := &ec2.DescribeImagesOutput{
 			Images: []types.Image{
@@ -275,6 +277,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		ec2Mock := &mocks.Ec2client{}
 		input := &ec2.DescribeImagesInput{Owners: []string{"self", "123456"}}
 		sixdays, err := str2duration.ParseDuration("6d")
+		require.NoError(t, err)
 		creationDate := time.Now().Add(sixdays * -1).Format("2006-01-02T15:04:05.000Z")
 		response := &ec2.DescribeImagesOutput{
 			Images: []types.Image{
