@@ -143,7 +143,15 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		}
 		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts2).Return(&expectedOut2, nil).Once()
 
-		notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI([]string{expectedGrpID1, expectedGrpID2}, dryRun)
+		secGrps := SecurityGroups{
+			SecurityGroup{
+				ID: expectedGrpID1,
+			},
+			SecurityGroup{
+				ID: expectedGrpID2,
+			},
+		}
+		notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI(secGrps, dryRun)
 		require.NoError(t, err)
 		assert.Len(t, notUsedSecGrps, 0)
 		mock.AssertExpectations(t)
@@ -165,10 +173,17 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		expectedOut1 := ec2.DescribeNetworkInterfacesOutput{}
 		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts1).Return(&expectedOut1, nil).Once()
 
-		notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI([]string{"1234"}, dryRun)
+		notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI(SecurityGroups{SecurityGroup{ID: expectedGrpID1}}, dryRun)
 		require.NoError(t, err)
 		assert.Len(t, notUsedSecGrps, 1)
-		assert.Contains(t, notUsedSecGrps, expectedGrpID1)
+
+		contained := false
+		for _, secGrp := range notUsedSecGrps {
+			if secGrp.ID == expectedGrpID1 {
+				contained = true
+			}
+		}
+		assert.True(t, contained)
 
 		mock.AssertExpectations(t)
 	})
@@ -204,7 +219,11 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		}
 		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts2).Return(nil, fmt.Errorf("Something went wrong")).Once()
 
-		notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI([]string{"1234", "5678"}, dryRun)
+		secGrps := SecurityGroups{
+			SecurityGroup{ID: expectedGrpID1},
+			SecurityGroup{ID: expectedGrpID2},
+		}
+		notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI(secGrps, dryRun)
 		require.Error(t, err)
 		require.EqualError(t, err, "Something went wrong")
 		assert.Len(t, notUsedSecGrps, 0)
@@ -225,7 +244,7 @@ func TestDeleteSecurityGroup(t *testing.T) {
 		}
 		mock.EXPECT().DeleteSecurityGroup(context.TODO(), expectedOpts).Return(nil, nil).Once()
 
-		err := SUT.DeleteSecurityGroup(expectedSecGrpID, dryRun)
+		err := SUT.DeleteSecurityGroup(SecurityGroup{ID: expectedSecGrpID}, dryRun)
 		require.NoError(t, err)
 	})
 
@@ -241,7 +260,7 @@ func TestDeleteSecurityGroup(t *testing.T) {
 
 		mock.EXPECT().DeleteSecurityGroup(context.TODO(), expectedOpts).Return(nil, fmt.Errorf("Something went wrong")).Once()
 
-		err := SUT.DeleteSecurityGroup(expectedSecGrpID, dryRun)
+		err := SUT.DeleteSecurityGroup(SecurityGroup{ID: expectedSecGrpID}, dryRun)
 		require.Error(t, err)
 		require.EqualError(t, err, "Something went wrong")
 

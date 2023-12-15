@@ -34,9 +34,13 @@ func (sec *SecGrp) DeleteUnusedSecurityGroups() error {
 		return fmt.Errorf("could not get not used SecurityGroups from ENIs: %w", err)
 	}
 	if !sec.dryrun {
-		for _, secGrpID := range notUsed {
-			err := sec.awsClient.DeleteSecurityGroup(secGrpID, sec.dryrun)
-			logger.Errorf("error deleting security group: %s", err)
+		for _, secGrp := range notUsed {
+
+			if secGrp.CreationTime == nil || secGrp.CreationTime.Before(time.Now().Add(sec.olderthen*-1)) {
+				err := sec.awsClient.DeleteSecurityGroup(secGrp, sec.dryrun)
+				logger.Errorf("error deleting security group: %s", err)
+			}
+
 		}
 	}
 	return nil
