@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 steffakasid
-
 */
 package cmd
 
