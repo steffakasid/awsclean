@@ -10,12 +10,12 @@ import (
 
 type SecGrp struct {
 	awsClient *internal.AWS
-	olderthen time.Duration
+	olderthen *time.Duration
 	dryrun    bool
 	showTags  bool
 }
 
-func NewInstance(awsClient *internal.AWS, olderthen time.Duration, dryrun bool, showTags bool) *SecGrp {
+func NewInstance(awsClient *internal.AWS, olderthen *time.Duration, dryrun bool, showTags bool) *SecGrp {
 	return &SecGrp{
 		awsClient: awsClient,
 		olderthen: olderthen,
@@ -24,7 +24,23 @@ func NewInstance(awsClient *internal.AWS, olderthen time.Duration, dryrun bool, 
 	}
 }
 
-func (sec *SecGrp) DeleteUnusedSecurityGroups() error {
+func (sec SecGrp) GetSecurityGroups(unused bool) (internal.SecurityGroups, error) {
+	secGrpIDs, err := sec.awsClient.GetSecurityGroups(sec.dryrun)
+	if nil != err {
+		return nil, fmt.Errorf("could not get SecurityGroups: %w", err)
+	}
+
+	if unused || sec.olderthen != nil {
+		notUsed, err := sec.awsClient.GetNotUsedSecGrpsFromENI(secGrpIDs, sec.dryrun)
+		if nil != err {
+			return nil, fmt.Errorf("could not get not used SecurityGroups from ENIs: %w", err)
+		}
+		return notUsed, nil
+	}
+	return secGrpIDs, nil
+}
+
+func (sec SecGrp) DeleteUnusedSecurityGroups() error {
 	secGrpIDs, err := sec.awsClient.GetSecurityGroups(sec.dryrun)
 	if nil != err {
 		return fmt.Errorf("could not get SecurityGroups: %w", err)
@@ -36,11 +52,10 @@ func (sec *SecGrp) DeleteUnusedSecurityGroups() error {
 	if !sec.dryrun {
 		for _, secGrp := range notUsed {
 
-			if secGrp.CreationTime == nil || secGrp.CreationTime.Before(time.Now().Add(sec.olderthen*-1)) {
+			if secGrp.CreationTime == nil || secGrp.CreationTime.Before(time.Now().Add(*sec.olderthen*-1)) {
 				err := sec.awsClient.DeleteSecurityGroup(secGrp, sec.dryrun)
 				logger.Errorf("error deleting security group: %s", err)
 			}
-
 		}
 	}
 	return nil
