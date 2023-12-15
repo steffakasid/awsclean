@@ -28,7 +28,7 @@ is set to 7 days.
 
 Examples:
   awsclean ebs --older-then 5w  delete all EBS volumes which are older then 5w and are not bound
-  awsclean ebs --dry-run        do not delete any EBS volume just show what you would do
+  awsclean ebs --dry-run        do not delete any EBS volume just show what should be done
   awsclean ebs --show-tags      print out tags of EBS volumes`,
 	Run: func(cmd *cobra.Command, args []string) {
 		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
