@@ -1,5 +1,4 @@
 # Options for analysis running.
-# Options for analysis running.
 run:
   # The default concurrency value is the number of available CPU.
   concurrency: 4
@@ -146,123 +145,123 @@ linters:
   # disable-all: true
   # Enable specific linter
   # https://golangci-lint.run/usage/linters/#enabled-by-default
-  # enable:
-  #   - asasalint
-  #   - asciicheck
-  #   - bidichk
-  #   - bodyclose
-  #   - containedctx
-  #   - contextcheck
-  #   - cyclop
-  #   - deadcode
-  #   - decorder
-  #   - depguard
-  #   - dogsled
-  #   - dupl
-  #   - dupword
-  #   - durationcheck
-  #   - errcheck
-  #   - errchkjson
-  #   - errname
-  #   - errorlint
-  #   - execinquery
-  #   - exhaustive
-  #   - exhaustivestruct
-  #   - exhaustruct
-  #   - exportloopref
-  #   - forbidigo
-  #   - forcetypeassert
-  #   - funlen
-  #   - gci
-  #   - ginkgolinter
-  #   - gocheckcompilerdirectives
-  #   - gochecknoglobals
-  #   - gochecknoinits
-  #   - gochecksumtype
-  #   - gocognit
-  #   - goconst
-  #   - gocritic
-  #   - gocyclo
-  #   - godot
-  #   - godox
-  #   - goerr113
-  #   - gofmt
-  #   - gofumpt
-  #   - goheader
-  #   - goimports
-  #   - golint
-  #   - gomnd
-  #   - gomoddirectives
-  #   - gomodguard
-  #   - goprintffuncname
-  #   - gosec
-  #   - gosimple
-  #   - gosmopolitan
-  #   - govet
-  #   - grouper
-  #   - ifshort
-  #   - importas
-  #   - inamedparam
-  #   - ineffassign
-  #   - interfacebloat
-  #   - interfacer
-  #   - ireturn
-  #   - lll
-  #   - loggercheck
-  #   - maintidx
-  #   - makezero
-  #   - maligned
-  #   - mirror
-  #   - misspell
-  #   - musttag
-  #   - nakedret
-  #   - nestif
-  #   - nilerr
-  #   - nilnil
-  #   - nlreturn
-  #   - noctx
-  #   - nolintlint
-  #   - nonamedreturns
-  #   - nosnakecase
-  #   - nosprintfhostport
-  #   - paralleltest
-  #   - perfsprint
-  #   - prealloc
-  #   - predeclared
-  #   - promlinter
-  #   - protogetter
-  #   - reassign
-  #   - revive
-  #   - rowserrcheck
-  #   - scopelint
-  #   - sloglint
-  #   - sqlclosecheck
-  #   - staticcheck
-  #   - structcheck
-  #   - stylecheck
-  #   - tagalign
-  #   - tagliatelle
-  #   - tenv
-  #   - testableexamples
-  #   - testifylint
-  #   - testpackage
-  #   - thelper
-  #   - tparallel
-  #   - typecheck
-  #   - unconvert
-  #   - unparam
-  #   - unused
-  #   - usestdlibvars
-  #   - varcheck
-  #   - varnamelen
-  #   - wastedassign
-  #   - whitespace
-  #   - wrapcheck
-  #   - wsl
-  #   - zerologlint
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - cyclop
+    - deadcode
+    - decorder
+    - depguard
+    - dogsled
+    - dupl
+    - dupword
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - execinquery
+    - exhaustive
+    - exhaustivestruct
+    - exhaustruct
+    - exportloopref
+    - forbidigo
+    - forcetypeassert
+    - funlen
+    - gci
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecknoglobals
+    - gochecknoinits
+    - gochecksumtype
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - godox
+    - goerr113
+    - gofmt
+    - gofumpt
+    - goheader
+    - goimports
+    - golint
+    - gomnd
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - gosmopolitan
+    - govet
+    - grouper
+    - ifshort
+    - importas
+    - inamedparam
+    - ineffassign
+    - interfacebloat
+    - interfacer
+    - ireturn
+    - lll
+    - loggercheck
+    - maintidx
+    - makezero
+    - maligned
+    - mirror
+    - misspell
+    - musttag
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - nlreturn
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosnakecase
+    - nosprintfhostport
+    - paralleltest
+    - perfsprint
+    - prealloc
+    - predeclared
+    - promlinter
+    - protogetter
+    - reassign
+    - revive
+    - rowserrcheck
+    - scopelint
+    - sloglint
+    - sqlclosecheck
+    - staticcheck
+    - structcheck
+    - stylecheck
+    - tagalign
+    - tagliatelle
+    - tenv
+    - testableexamples
+    - testifylint
+    - testpackage
+    - thelper
+    - tparallel
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - varcheck
+    - varnamelen
+    - wastedassign
+    - whitespace
+    - wrapcheck
+    - wsl
+    - zerologlint
   # Enable all available linters.
   # Default: false
-  enable-all: true
+  # enable-all: true
   # Disable specific linter
   # https://golangci-lint.run/usage/linters/#disabled-by-default
   # disable:
@@ -380,23 +379,23 @@ linters:
   #   - zerologlint
   # Enable presets.
   # https://golangci-lint.run/usage/linters
-  presets:
-    - bugs
-    - comment
-    - complexity
-    - error
-    - format
-    - import
-    - metalinter
-    - module
-    - performance
-    - sql
-    - style
-    - test
-    - unused
+  # presets:
+  #   - bugs
+  #   - comment
+  #   - complexity
+  #   - error
+  #   - format
+  #   - import
+  #   - metalinter
+  #   - module
+  #   - performance
+  #   - sql
+  #   - style
+  #   - test
+  #   - unused
   # Run only fast linters from enabled linters set (first run won't be fast)
   # Default: false
-  fast: true
+  # fast: true
 issues:
   # List of regexps of issue texts to exclude.
   #
@@ -479,7 +478,7 @@ issues:
   # Default: false.
   # new: true
   # Show only new issues created after git revision `REV`.
-  new-from-rev: HEAD
+  # new-from-rev: HEAD
   # Show only new issues created in git patch with set file path.
   # new-from-patch: path/to/patch/file
   # Fix found issues (if it's supported by the linter).
