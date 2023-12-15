@@ -59,8 +59,47 @@ func TestGetSecurityGroups(t *testing.T) {
 		}
 		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts2).Return(expectedOut2, nil).Once()
 
-		secGrps := SUT.GetSecurityGroups(dryRun)
+		secGrps, err := SUT.GetSecurityGroups(dryRun)
+		require.NoError(t, err)
 		assert.Len(t, secGrps, 2)
+		mock.AssertExpectations(t)
+	})
+
+	t.Run("Error from AWS and we fail", func(t *testing.T) {
+		dryRun := false
+		expectedToken := "expected next token"
+
+		SUT, mock := setupSUT()
+
+		expectedOpts := &ec2.DescribeSecurityGroupsInput{
+			DryRun:     aws.Bool(dryRun),
+			MaxResults: aws.Int32(100),
+		}
+		expectedOut := &ec2.DescribeSecurityGroupsOutput{
+			NextToken: &expectedToken,
+			SecurityGroups: []types.SecurityGroup{
+				{
+					GroupId:   aws.String("1234"),
+					GroupName: aws.String("some name"),
+				},
+			},
+		}
+		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts).Return(expectedOut, nil).Once()
+		expectedOpts2 := &ec2.DescribeSecurityGroupsInput{
+			DryRun:     aws.Bool(dryRun),
+			MaxResults: aws.Int32(100),
+			NextToken:  aws.String(expectedToken),
+		}
+		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts2).Return(nil, fmt.Errorf("Something went wrong")).Once()
+
+		out, err := SUT.GetSecurityGroups(dryRun)
+		require.Error(t, err)
+		require.EqualError(t, err, "Something went wrong")
+
+		// We get back a partial result here
+		assert.Len(t, out, 1)
+
+		mock.AssertExpectations(t)
 	})
 }
 
@@ -104,8 +143,73 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		}
 		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts2).Return(&expectedOut2, nil).Once()
 
-		notUsedSecGrps := SUT.GetNotUsedSecGrpsFromENI([]string{"1234", "5678"}, dryRun)
+		notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI([]string{expectedGrpID1, expectedGrpID2}, dryRun)
+		require.NoError(t, err)
 		assert.Len(t, notUsedSecGrps, 0)
+		mock.AssertExpectations(t)
+	})
+
+	t.Run("Yes it's used", func(t *testing.T) {
+		dryRun := false
+		expectedGrpID1 := "1234"
+
+		SUT, mock := setupSUT()
+
+		expectedOpts1 := &ec2.DescribeNetworkInterfacesInput{
+			DryRun: aws.Bool(dryRun),
+			Filters: []types.Filter{
+				{
+					Values: []string{fmt.Sprintf("Name=%s", expectedGrpID1)}},
+			},
+		}
+		expectedOut1 := ec2.DescribeNetworkInterfacesOutput{}
+		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts1).Return(&expectedOut1, nil).Once()
+
+		notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI([]string{"1234"}, dryRun)
+		require.NoError(t, err)
+		assert.Len(t, notUsedSecGrps, 1)
+		assert.Contains(t, notUsedSecGrps, expectedGrpID1)
+
+		mock.AssertExpectations(t)
+	})
+
+	t.Run("Error from AWS", func(t *testing.T) {
+		dryRun := false
+		expectedGrpID1 := "1234"
+		expectedGrpID2 := "5678"
+
+		SUT, mock := setupSUT()
+
+		expectedOpts1 := &ec2.DescribeNetworkInterfacesInput{
+			DryRun: aws.Bool(dryRun),
+			Filters: []types.Filter{
+				{
+					Values: []string{fmt.Sprintf("Name=%s", expectedGrpID1)}},
+			},
+		}
+		expectedOut1 := ec2.DescribeNetworkInterfacesOutput{
+			NetworkInterfaces: []types.NetworkInterface{
+				{
+					MacAddress: aws.String("1"),
+				},
+			},
+		}
+		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts1).Return(&expectedOut1, nil).Once()
+		expectedOpts2 := &ec2.DescribeNetworkInterfacesInput{
+			DryRun: aws.Bool(dryRun),
+			Filters: []types.Filter{
+				{
+					Values: []string{fmt.Sprintf("Name=%s", expectedGrpID2)}},
+			},
+		}
+		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts2).Return(nil, fmt.Errorf("Something went wrong")).Once()
+
+		notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI([]string{"1234", "5678"}, dryRun)
+		require.Error(t, err)
+		require.EqualError(t, err, "Something went wrong")
+		assert.Len(t, notUsedSecGrps, 0)
+
+		mock.AssertExpectations(t)
 	})
 }
 
@@ -119,11 +223,29 @@ func TestDeleteSecurityGroup(t *testing.T) {
 			DryRun:  &dryRun,
 			GroupId: &expectedSecGrpID,
 		}
-
-		mock.EXPECT().DeleteSecurityGroup(context.TODO(), expectedOpts).Return(&ec2.DeleteSecurityGroupOutput{}, nil).Once()
+		mock.EXPECT().DeleteSecurityGroup(context.TODO(), expectedOpts).Return(nil, nil).Once()
 
 		err := SUT.DeleteSecurityGroup(expectedSecGrpID, dryRun)
 		require.NoError(t, err)
+	})
+
+	t.Run("Error from AWS", func(t *testing.T) {
+		expectedSecGrpID := "13210-41231-21-23212-3123"
+		dryRun := false
+
+		SUT, mock := setupSUT()
+		expectedOpts := &ec2.DeleteSecurityGroupInput{
+			DryRun:  &dryRun,
+			GroupId: &expectedSecGrpID,
+		}
+
+		mock.EXPECT().DeleteSecurityGroup(context.TODO(), expectedOpts).Return(nil, fmt.Errorf("Something went wrong")).Once()
+
+		err := SUT.DeleteSecurityGroup(expectedSecGrpID, dryRun)
+		require.Error(t, err)
+		require.EqualError(t, err, "Something went wrong")
+
+		mock.AssertExpectations(t)
 	})
 }
 
@@ -167,6 +289,7 @@ func TestGetUsedAMIsFromEC2(t *testing.T) {
 		usedAMIs := SUT.GetUsedAMIsFromEC2()
 		assert.Len(t, usedAMIs, 2)
 
+		mock.AssertExpectations(t)
 	})
 }
 
@@ -204,6 +327,8 @@ func TestGetUsedAMIsFromLaunchTpls(t *testing.T) {
 
 		usedAmis := SUT.GetUsedAMIsFromLaunchTpls()
 		assert.Len(t, usedAmis, 2)
+
+		mock.AssertExpectations(t)
 	})
 }
 
@@ -221,6 +346,23 @@ func TestDescribeImages(t *testing.T) {
 		out, err := SUT.DescribeImages(expetedAccountID)
 		require.NoError(t, err)
 		assert.NotNil(t, out)
+	})
+
+	t.Run("Error from AWS", func(t *testing.T) {
+		expetedAccountID := "1234567890"
+
+		SUT, mock := setupSUT()
+		expectedOpts := &ec2.DescribeImagesInput{
+			Owners: []string{"self", expetedAccountID},
+		}
+		mock.EXPECT().DescribeImages(context.TODO(), expectedOpts).Return(nil, fmt.Errorf("Something went wrong")).Once()
+
+		out, err := SUT.DescribeImages(expetedAccountID)
+		assert.Nil(t, out)
+		require.Error(t, err)
+		require.EqualError(t, err, "Something went wrong")
+
+		mock.AssertExpectations(t)
 	})
 }
 
@@ -240,6 +382,27 @@ func TestDeregisterImage(t *testing.T) {
 
 		err := SUT.DeregisterImage(expectedImageID, dryRun)
 		require.NoError(t, err)
+
+		mock.AssertExpectations(t)
+	})
+
+	t.Run("Error from AWS", func(t *testing.T) {
+		expectedImageID := "1234-543-23ffs"
+		dryRun := false
+
+		SUT, mock := setupSUT()
+
+		expectedOpts := &ec2.DeregisterImageInput{
+			ImageId: &expectedImageID,
+			DryRun:  &dryRun,
+		}
+		mock.EXPECT().DeregisterImage(context.TODO(), expectedOpts).Return(nil, fmt.Errorf("Something went wrong")).Once()
+
+		err := SUT.DeregisterImage(expectedImageID, dryRun)
+		require.Error(t, err)
+		require.EqualError(t, err, "Something went wrong")
+
+		mock.AssertExpectations(t)
 	})
 }
 
@@ -266,6 +429,8 @@ func TestGetAvailableEBSVolumes(t *testing.T) {
 
 		volumes := SUT.GetAvailableEBSVolumes()
 		assert.Len(t, volumes, 2)
+
+		mock.AssertExpectations(t)
 	})
 
 }
@@ -286,6 +451,27 @@ func TestDeleteVolume(t *testing.T) {
 
 		err := SUT.DeleteVolume(volumeID, dryRun)
 		require.NoError(t, err)
+
+		mock.AssertExpectations(t)
+	})
+
+	t.Run("Error from AWS", func(t *testing.T) {
+		volumeID := "1234-44555-23456"
+		dryRun := false
+
+		SUT, mock := setupSUT()
+
+		expectedOpts := &ec2.DeleteVolumeInput{
+			VolumeId: &volumeID,
+			DryRun:   &dryRun,
+		}
+		mock.EXPECT().DeleteVolume(context.TODO(), expectedOpts).Return(nil, fmt.Errorf("Something went wrong")).Once()
+
+		err := SUT.DeleteVolume(volumeID, dryRun)
+		require.Error(t, err)
+		require.EqualError(t, err, "Something went wrong")
+
+		mock.AssertExpectations(t)
 	})
 
 }

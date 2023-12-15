@@ -46,7 +46,7 @@ func NewAWSClient(conf func(ctx context.Context, optFns ...func(*config.LoadOpti
 	return aws
 }
 
-func (a *AWS) GetSecurityGroups(dryRun bool) []string {
+func (a *AWS) GetSecurityGroups(dryRun bool) ([]string, error) {
 	secGrps := []string{}
 	secGrpIds := []string{}
 
@@ -57,7 +57,10 @@ func (a *AWS) GetSecurityGroups(dryRun bool) []string {
 
 	for {
 		out, err := a.ec2.DescribeSecurityGroups(context.TODO(), in)
-		CheckError(err, logger.Fatalf)
+		CheckError(err, logger.Debugf)
+		if nil != err {
+			return secGrpIds, err
+		}
 
 		for _, secGrp := range out.SecurityGroups {
 			secGrps = UniqueAppend(secGrps, *secGrp.GroupName)
@@ -72,10 +75,10 @@ func (a *AWS) GetSecurityGroups(dryRun bool) []string {
 	}
 
 	logger.Debug("SecurityGroups[]:", secGrps)
-	return secGrpIds
+	return secGrpIds, nil
 }
 
-func (a *AWS) GetNotUsedSecGrpsFromENI(secGrpIds []string, dryRun bool) []string {
+func (a *AWS) GetNotUsedSecGrpsFromENI(secGrpIds []string, dryRun bool) ([]string, error) {
 	notUseSecGrpIDs := []string{}
 
 	for _, secGrpId := range secGrpIds {
@@ -90,13 +93,16 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrpIds []string, dryRun bool) []string
 		}
 
 		out, err := a.ec2.DescribeNetworkInterfaces(context.TODO(), in)
-		CheckError(err, logger.Errorf)
+		CheckError(err, logger.Debugf)
+		if nil != err {
+			return notUseSecGrpIDs, err
+		}
 		if len(out.NetworkInterfaces) == 0 {
 			logger.Debug("No ENI attached to group with ID: ", secGrpId)
 			notUseSecGrpIDs = UniqueAppend(notUseSecGrpIDs, secGrpId)
 		}
 	}
-	return notUseSecGrpIDs
+	return notUseSecGrpIDs, nil
 }
 
 func (a *AWS) DeleteSecurityGroup(secGrpID string, dryrun bool) error {

@@ -1,6 +1,7 @@
 package secgrp
 
 import (
+	"fmt"
 	"time"
 
 	logger "github.com/sirupsen/logrus"
@@ -23,13 +24,20 @@ func NewInstance(awsClient *internal.AWS, olderthen time.Duration, dryrun bool, 
 	}
 }
 
-func (sec *SecGrp) DeleteUnusedSecurityGroups() {
-	secGrpIDs := sec.awsClient.GetSecurityGroups(sec.dryrun)
-	notUsed := sec.awsClient.GetNotUsedSecGrpsFromENI(secGrpIDs, sec.dryrun)
+func (sec *SecGrp) DeleteUnusedSecurityGroups() error {
+	secGrpIDs, err := sec.awsClient.GetSecurityGroups(sec.dryrun)
+	if nil != err {
+		return fmt.Errorf("could not get SecurityGroups: %w", err)
+	}
+	notUsed, err := sec.awsClient.GetNotUsedSecGrpsFromENI(secGrpIDs, sec.dryrun)
+	if nil != err {
+		return fmt.Errorf("could not get not used SecurityGroups from ENIs: %w", err)
+	}
 	if !sec.dryrun {
 		for _, secGrpID := range notUsed {
 			err := sec.awsClient.DeleteSecurityGroup(secGrpID, sec.dryrun)
 			logger.Errorf("error deleting security group: %s", err)
 		}
 	}
+	return nil
 }
