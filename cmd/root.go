@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Constants used in command flags
 const (
 	dryrun    = "dry-run"
 	olderthen = "older-then"
@@ -26,8 +27,9 @@ var rootCmd = &cobra.Command{
 	Long: `This tool is intended to be used to cleanup certain AWS services.
 	
 Right now it supports the following:
-  - Amazon Machine Images (AMIs)
-  - Elastic Blockstore (EBS) Volumes
+  - Unused Amazon Machine Images (AMIs)
+  - Unused Elastic Blockstore (EBS) Volumes
+  - Unused SecurityGroups
 
 Preqrequisites:
   amiclean uses already provided credentials in ~/.aws/credentials also it uses the
@@ -73,5 +75,7 @@ func initConfig() {
 
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	} else {
+		cobra.CheckErr(err) // Just to show the error from ReadInConfig
 	}
 }
