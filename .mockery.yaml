@@ -6,5 +6,5 @@ packages:
         configs:
           - mockname: Ec2client
             filename: "{{.InterfaceName}}.go"
-            dir: "mocks"
+            dir: "internal/mocks"
             outpkg: "mocks"

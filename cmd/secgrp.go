@@ -4,16 +4,20 @@ Copyright © 2023 steffakasid
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"log"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
+	"github.com/aws/aws-sdk-go-v2/service/cloudtrail/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	logger "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/steffakasid/amiclean/internal"
-	"github.com/steffakasid/amiclean/internal/secgrp"
+	"github.com/steffakasid/awsclean/internal"
+	"github.com/steffakasid/awsclean/internal/secgrp"
 	"github.com/xhit/go-str2duration/v2"
 )
 
@@ -33,7 +37,42 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("secgrp called")
+		var nextToken string
+
+		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
+		internal.CheckError(err, logger.Fatalf)
+
+		cfg, _ := config.LoadDefaultConfig(context.TODO())
+		cloudtrailclient := cloudtrail.NewFromConfig(cfg)
+
+		for nextToken != "" {
+			// We only get CloudTrailEvents of the last 90d: https://docs.aws.amazon.com/sdk-for-go/api/service/cloudtrail/#CloudTrail.LookupEvents
+			out, err := cloudtrailclient.LookupEvents(context.TODO(), &cloudtrail.LookupEventsInput{
+				LookupAttributes: []types.LookupAttribute{
+					{
+						AttributeKey:   types.LookupAttributeKeyEventName,
+						AttributeValue: aws.String("CreateSecurityGroup"),
+					},
+				},
+				NextToken: aws.String(nextToken),
+			})
+			nextToken = *out.NextToken
+			cobra.CheckErr(err)
+			for _, ev := range out.Events {
+				for _, res := range ev.Resources {
+					fmt.Println("ResouceName:", *res.ResourceName)
+				}
+				fmt.Println("Time", ev.EventTime)
+				fmt.Println("Wer ist schuld?", *ev.Username)
+				fmt.Println("---------------------------------------------")
+				fmt.Println()
+			}
+		}
+
+		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig)
+
+		secgrp := secgrp.NewInstance(awsClient, olderthenDuration, viper.GetBool(dryrun), viper.GetBool(showtags))
+		secgrp.DeleteUnusedSecurityGroups()
 	},
 }
 

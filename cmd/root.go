@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	logger "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -16,6 +17,7 @@ import (
 const (
 	dryrun    = "dry-run"
 	olderthen = "older-then"
+	debugFlag = "debug"
 )
 
 var cfgFile string
@@ -54,6 +56,7 @@ func init() {
 
 	peristentFlags.BoolP(dryrun, "d", false, "If set to true nothing will be deleted. And amiclean will just show what it would do!")
 	peristentFlags.StringP(olderthen, "o", "7d", "Set the duration string (e.g 5d, 1w etc.) how old AMIs must be to be deleted. E.g. if set to 7d, AMIs will be delete which are older then 7 days.")
+	peristentFlags.StringP(debugFlag, "l", "info", "Enable debugging. Possible Values [debug,info,warn,error,fatal]")
 
 	cobra.CheckErr(viper.BindPFlags(peristentFlags))
 }
@@ -78,4 +81,26 @@ func initConfig() {
 	} else {
 		cobra.CheckErr(err) // Just to show the error from ReadInConfig
 	}
+
+	setLogLevel()
+}
+
+func setLogLevel() {
+	var level logger.Level
+
+	switch strings.ToLower(viper.GetString(debugFlag)) {
+	case "debug":
+		level = logger.DebugLevel
+	case "info":
+		level = logger.InfoLevel
+	case "warn":
+		level = logger.WarnLevel
+	case "error":
+		level = logger.ErrorLevel
+	case "fatal":
+		level = logger.FatalLevel
+	default:
+		level = logger.InfoLevel
+	}
+	logger.SetLevel(level)
 }
