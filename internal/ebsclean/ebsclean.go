@@ -6,7 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	logger "github.com/sirupsen/logrus"
-	"github.com/steffakasid/amiclean/internal"
+	"github.com/steffakasid/awsclean/internal"
 )
 
 type EBSClean struct {

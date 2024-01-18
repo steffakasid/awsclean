@@ -4,7 +4,7 @@ import (
 	"time"
 
 	logger "github.com/sirupsen/logrus"
-	"github.com/steffakasid/amiclean/internal"
+	"github.com/steffakasid/awsclean/internal"
 )
 
 type AmiClean struct {

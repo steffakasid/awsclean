@@ -1,9 +1,9 @@
 = AWSCLEAN - Cleanup unused and old AMIs on AWS
 
 image:https://img.shields.io/badge/License-Apache%202.0-blue.svg[link="http://www.apache.org/licenses/LICENSE-2.0"]
-image:https://github.com/steffakasid/amiclean/actions/workflows/codeql-analysis.yml/badge.svg[link:https://github.com/steffakasid/amiclean/actions/workflows/codeql-analysis.yml]
-image:https://github.com/steffakasid/amiclean/actions/workflows/release.yml/badge.svg[link:https://github.com/steffakasid/amiclean/actions/workflows/release.yml]
-image:https://github.com/steffakasid/amiclean/actions/workflows/go-test.yml/badge.svg[link:https://github.com/steffakasid/amiclean/actions/workflows/go-test.yml]
+image:https://github.com/steffakasid/awsclean/actions/workflows/codeql-analysis.yml/badge.svg[link:https://github.com/steffakasid/awsclean/actions/workflows/codeql-analysis.yml]
+image:https://github.com/steffakasid/awsclean/actions/workflows/release.yml/badge.svg[link:https://github.com/steffakasid/awsclean/actions/workflows/release.yml]
+image:https://github.com/steffakasid/awsclean/actions/workflows/go-test.yml/badge.svg[link:https://github.com/steffakasid/awsclean/actions/workflows/go-test.yml]
 
 This tool is intended to:
 

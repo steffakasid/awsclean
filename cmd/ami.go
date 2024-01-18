@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -9,8 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/steffakasid/amiclean/internal"
-	"github.com/steffakasid/amiclean/internal/amiclean"
+	"github.com/steffakasid/awsclean/internal"
+	"github.com/steffakasid/awsclean/internal/amiclean"
 	"github.com/xhit/go-str2duration/v2"
 
 	logger "github.com/sirupsen/logrus"

@@ -11,8 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/google/uuid"
-	"github.com/steffakasid/amiclean/internal"
-	"github.com/steffakasid/amiclean/internal/mocks"
+	"github.com/steffakasid/awsclean/internal"
+	"github.com/steffakasid/awsclean/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/xhit/go-str2duration/v2"
 )

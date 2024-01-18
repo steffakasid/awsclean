@@ -1,4 +1,4 @@
-module github.com/steffakasid/amiclean
+module github.com/steffakasid/awsclean
 
 go 1.19
 

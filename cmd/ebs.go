@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -10,8 +9,8 @@ import (
 	logger "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/steffakasid/amiclean/internal"
-	"github.com/steffakasid/amiclean/internal/ebsclean"
+	"github.com/steffakasid/awsclean/internal"
+	"github.com/steffakasid/awsclean/internal/ebsclean"
 	"github.com/xhit/go-str2duration/v2"
 )
 

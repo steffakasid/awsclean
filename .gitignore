@@ -87,3 +87,5 @@ Temporary Items
 dist/*
 ./amiclean
 !internal/amiclean/**
+
+awsclean
