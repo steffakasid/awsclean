@@ -39,8 +39,8 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var nextToken string
 
-		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
-		internal.CheckError(err, logger.Fatalf)
+		// olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
+		// internal.CheckError(err, logger.Fatalf)
 
 		cfg, _ := config.LoadDefaultConfig(context.TODO())
 		cloudtrailclient := cloudtrail.NewFromConfig(cfg)
@@ -69,10 +69,10 @@ to quickly create a Cobra application.`,
 			}
 		}
 
-		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig)
+		// awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig)
 
-		secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, viper.GetBool(dryrun), viper.GetBool(showtags))
-		secgrp.DeleteUnusedSecurityGroups()
+		// secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, viper.GetBool(dryrun), viper.GetBool(showtags))
+		// secgrp.DeleteUnusedSecurityGroups()
 	},
 }
 
