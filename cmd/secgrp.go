@@ -37,7 +37,7 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var nextToken string
+		var nextToken string = "empty"
 
 		// olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
 		// internal.CheckError(err, logger.Fatalf)
@@ -46,16 +46,20 @@ to quickly create a Cobra application.`,
 		cloudtrailclient := cloudtrail.NewFromConfig(cfg)
 
 		for nextToken != "" {
-			// We only get CloudTrailEvents of the last 90d: https://docs.aws.amazon.com/sdk-for-go/api/service/cloudtrail/#CloudTrail.LookupEvents
-			out, err := cloudtrailclient.LookupEvents(context.TODO(), &cloudtrail.LookupEventsInput{
+			lookup := &cloudtrail.LookupEventsInput{
 				LookupAttributes: []types.LookupAttribute{
 					{
 						AttributeKey:   types.LookupAttributeKeyEventName,
 						AttributeValue: aws.String("CreateSecurityGroup"),
 					},
 				},
-				NextToken: aws.String(nextToken),
-			})
+			}
+			// We only get CloudTrailEvents of the last 90d: https://docs.aws.amazon.com/sdk-for-go/api/service/cloudtrail/#CloudTrail.LookupEvents
+			out, err := cloudtrailclient.LookupEvents(context.TODO(), lookup)
+			if nextToken != "empty" {
+				lookup.NextToken = aws.String(nextToken)
+			}
+
 			nextToken = *out.NextToken
 			cobra.CheckErr(err)
 			for _, ev := range out.Events {

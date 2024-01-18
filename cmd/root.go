@@ -71,7 +71,7 @@ func initConfig() {
 
 		viper.AddConfigPath(home)
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".amiclean")
+		viper.SetConfigName(".awsclean")
 	}
 
 	viper.AutomaticEnv()
@@ -79,7 +79,7 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	} else {
-		cobra.CheckErr(err) // Just to show the error from ReadInConfig
+		logger.Error(err) // Just to show the error from ReadInConfig
 	}
 
 	setLogLevel()
