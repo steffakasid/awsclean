@@ -71,7 +71,7 @@ to quickly create a Cobra application.`,
 
 		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig)
 
-		secgrp := secgrp.NewInstance(awsClient, olderthenDuration, viper.GetBool(dryrun), viper.GetBool(showtags))
+		secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, viper.GetBool(dryrun), viper.GetBool(showtags))
 		secgrp.DeleteUnusedSecurityGroups()
 	},
 }
