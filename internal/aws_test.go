@@ -17,9 +17,10 @@ import (
 
 //go:generate go run github.com/vektra/mockery/v2@v2.36.1
 
-func setupSUT() (*AWS, *mocks.Ec2client) {
-	ec2ClientMock := &mocks.Ec2client{}
-	SUT := NewFromInterface(ec2ClientMock)
+func setupSUT() (*AWS, *mocks.MockEc2client) {
+	ec2ClientMock := &mocks.MockEc2client{}
+	cloudTrailMock := &mocks.MockCloudTrail{}
+	SUT := NewFromInterface(ec2ClientMock, cloudTrailMock)
 	return SUT, ec2ClientMock
 }
 

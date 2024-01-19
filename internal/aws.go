@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/smithy-go"
@@ -25,13 +26,19 @@ type Ec2client interface {
 	DeleteVolume(ctx context.Context, params *ec2.DeleteVolumeInput, optFns ...func(*ec2.Options)) (*ec2.DeleteVolumeOutput, error)
 }
 
-type AWS struct {
-	ec2 Ec2client
+type CloudTrail interface {
+	LookupEvents(ctx context.Context, params *cloudtrail.LookupEventsInput, optFns ...func(*cloudtrail.Options)) (*cloudtrail.LookupEventsOutput, error)
 }
 
-func NewFromInterface(ec2 Ec2client) *AWS {
+type AWS struct {
+	ec2        Ec2client
+	cloudtrail CloudTrail
+}
+
+func NewFromInterface(ec2 Ec2client, cloudtrail CloudTrail) *AWS {
 	return &AWS{
-		ec2: ec2,
+		ec2:        ec2,
+		cloudtrail: cloudtrail,
 	}
 }
 

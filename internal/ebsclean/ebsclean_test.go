@@ -17,18 +17,19 @@ import (
 	"github.com/xhit/go-str2duration/v2"
 )
 
-func initEBSClean(ec2Mock *mocks.Ec2client, t *testing.T) *EBSClean {
+func initEBSClean(t *testing.T, ec2ClientMock *mocks.MockEc2client, cloudTrailMock *mocks.MockCloudTrail) *EBSClean {
 	olderthenDuration, err := str2duration.ParseDuration("7d")
 	assert.NoError(t, err)
 	return &EBSClean{
-		awsClient: internal.NewFromInterface(ec2Mock),
+		awsClient: internal.NewFromInterface(ec2ClientMock, cloudTrailMock),
 		olderthen: olderthenDuration,
 	}
 }
 
 func TestNewInstance(t *testing.T) {
-	mock := &mocks.Ec2client{}
-	awsClient := internal.NewFromInterface(mock)
+	ec2ClientMock := &mocks.MockEc2client{}
+	cloudTrailmock := &mocks.MockCloudTrail{}
+	awsClient := internal.NewFromInterface(ec2ClientMock, cloudTrailmock)
 	ebsclean := NewInstance(awsClient, time.Duration(1), false, false)
 	assert.NotNil(t, ebsclean)
 	assert.Equal(t, time.Duration(1), ebsclean.olderthen)
@@ -40,18 +41,19 @@ func TestDeleteUnusedEBSVolumes(t *testing.T) {
 	assert.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		mock := &mocks.Ec2client{}
+		ec2ClientMock := &mocks.MockEc2client{}
+		cloudTrailMock := &mocks.MockCloudTrail{}
 		// should do two describe calls and four delete calls (two delete per describe)
-		toDelete := mockDescribeVolumes(2, 2, deleteWhenOlder, mock)
-		mockDeleteVolume(toDelete, false, mock)
-		SUT := initEBSClean(mock, t)
+		toDelete := mockDescribeVolumes(2, 2, deleteWhenOlder, ec2ClientMock)
+		mockDeleteVolume(toDelete, false, ec2ClientMock)
+		SUT := initEBSClean(t, ec2ClientMock, cloudTrailMock)
 
 		SUT.DeleteUnusedEBSVolumes()
-		mock.AssertExpectations(t)
+		ec2ClientMock.AssertExpectations(t)
 	})
 }
 
-func mockDescribeVolumes(numCalls int, numDelete int, before time.Duration, mock *mocks.Ec2client) (toDelete []string) {
+func mockDescribeVolumes(numCalls int, numDelete int, before time.Duration, mock *mocks.MockEc2client) (toDelete []string) {
 	for i := 1; i <= numCalls; i++ {
 		opts := ec2.DescribeVolumesInput{}
 		volumes := []types.Volume{
@@ -98,7 +100,7 @@ func mockDescribeVolumes(numCalls int, numDelete int, before time.Duration, mock
 	return toDelete
 }
 
-func mockDeleteVolume(volumeIds []string, dryrun bool, mock *mocks.Ec2client) {
+func mockDeleteVolume(volumeIds []string, dryrun bool, mock *mocks.MockEc2client) {
 	for _, volumeId := range volumeIds {
 		opts := ec2.DeleteVolumeInput{
 			VolumeId: aws.String(volumeId),

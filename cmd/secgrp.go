@@ -55,13 +55,19 @@ to quickly create a Cobra application.`,
 				},
 			}
 			// We only get CloudTrailEvents of the last 90d: https://docs.aws.amazon.com/sdk-for-go/api/service/cloudtrail/#CloudTrail.LookupEvents
+			// ResouceName: vpc-a51078cd
+			// ResouceName: eksctl-eks-dev-nodegroup-apic-gw-1a-green-SG-16ACVO6XMU6HE
+			// ResouceName: sg-018ce2cbe787b04ef
+			// Time 2024-01-12 14:37:43 +0000 UTC
+			// Wer ist schuld? `email@adress.com`
+			// ---------------------------------------------
 			out, err := cloudtrailclient.LookupEvents(context.TODO(), lookup)
 			if nextToken != "empty" {
 				lookup.NextToken = aws.String(nextToken)
 			}
-
 			nextToken = *out.NextToken
 			cobra.CheckErr(err)
+
 			for _, ev := range out.Events {
 				for _, res := range ev.Resources {
 					fmt.Println("ResouceName:", *res.ResourceName)
