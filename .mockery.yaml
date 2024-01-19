@@ -1,10 +1,10 @@
 with-expecter: True
+all: true
+filename: "{{.InterfaceName}}.go"
+dir: "mocks"
+outpkg: "mocks"
+log-level: "info"
 packages:
-  github.com/steffakasid/amiclean/internal:
-    interfaces:
-      Ec2client:
-        configs:
-          - mockname: Ec2client
-            filename: "{{.InterfaceName}}.go"
-            dir: "internal/mocks"
-            outpkg: "mocks"
+  github.com/steffakasid/awsclean/internal:
+    config:
+      recursive: True
