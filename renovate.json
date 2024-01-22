@@ -18,7 +18,8 @@
     {
       "customType": "regex",
       "fileMatch": ["^.*go$"],
-      "matchStrings": ["\/\/go:generate go run (?<depName>.+?)@(?<currentValue>.*?)\n$"]
+      "matchStrings": ["\/\/go:generate go run (?<depName>.+?)@(?<currentValue>.*?)\n$"],
+      "datasource": "go"
     }
   ]
 }
