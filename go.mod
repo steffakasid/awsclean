@@ -1,6 +1,6 @@
 module github.com/steffakasid/awsclean
 
-go 1.19
+go 1.21
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.0
@@ -33,7 +33,7 @@ require (
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.5.0 // indirect
+	github.com/stretchr/objx v0.5.1 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
