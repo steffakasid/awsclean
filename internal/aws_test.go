@@ -15,8 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//go:generate go run github.com/vektra/mockery/v2@v2.36.1
-
 func setupSUT() (*AWS, *mocks.MockEc2client) {
 	ec2ClientMock := &mocks.MockEc2client{}
 	cloudTrailMock := &mocks.MockCloudTrail{}
