@@ -1,13 +1,18 @@
+/*
+Copyright © 2023 steffakasid
+*/
 package internal
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
+	"github.com/aws/aws-sdk-go-v2/service/cloudtrail/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/smithy-go"
@@ -42,14 +47,17 @@ func NewFromInterface(ec2 Ec2client, cloudtrail CloudTrail) *AWS {
 	}
 }
 
-func NewAWSClient(conf func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (cfg aws.Config, err error),
-	ec2InitFunc func(cfg aws.Config, optFns ...func(*ec2.Options)) *ec2.Client) *AWS {
+func NewAWSClient(
+	conf func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (cfg aws.Config, err error),
+	ec2InitFunc func(cfg aws.Config, optFns ...func(*ec2.Options)) *ec2.Client,
+	cloudtrailInitFunc func(cfg aws.Config, optFns ...func(*cloudtrail.Options)) *cloudtrail.Client) *AWS {
 	aws := &AWS{}
 
 	cfg, err := conf(context.TODO())
 	CheckError(err, logger.Fatalf)
 
 	aws.ec2 = ec2InitFunc(cfg)
+	aws.cloudtrail = cloudtrailInitFunc(cfg)
 	return aws
 }
 
@@ -177,6 +185,56 @@ func (a *AWS) GetUsedAMIsFromLaunchTpls() []string {
 	}
 	logger.Debug("UsedImages[] from Launch Templates", usedImages)
 	return usedImages
+}
+
+type cloudTrailSecGrp struct {
+	ResourceName string
+	CreateAt     time.Time
+	Creator      string
+}
+type cloudTrailInfo map[string]cloudTrailSecGrp
+
+func (a AWS) GetCloudTrailForSecGroups() cloudTrailInfo {
+	var nextToken string = "empty"
+
+	cloudTrailSecGrpInfo := cloudTrailInfo{}
+
+	for nextToken != "" {
+		lookup := &cloudtrail.LookupEventsInput{
+			LookupAttributes: []types.LookupAttribute{
+				{
+					AttributeKey:   types.LookupAttributeKeyEventName,
+					AttributeValue: aws.String("CreateSecurityGroup"),
+				},
+			},
+		}
+		// We only get CloudTrailEvents of the last 90d: https://docs.aws.amazon.com/sdk-for-go/api/service/cloudtrail/#CloudTrail.LookupEvents
+		// ResouceName: vpc-a51078cd
+		// ResouceName: eksctl-eks-dev-nodegroup-apic-gw-1a-green-SG-16ACVO6XMU6HE
+		// ResouceName: sg-018ce2cbe787b04ef
+		// Time 2024-01-12 14:37:43 +0000 UTC
+		// Wer ist schuld? `email@adress.com`
+		// ---------------------------------------------
+		out, err := a.cloudtrail.LookupEvents(context.TODO(), lookup)
+		if nextToken != "empty" {
+			lookup.NextToken = aws.String(nextToken)
+		}
+		nextToken = *out.NextToken
+		CheckError(err, logger.Errorf)
+
+		for _, ev := range out.Events {
+			for _, res := range ev.Resources {
+				cloudTrailSecGrpInfo[*res.ResourceName] = cloudTrailSecGrp{
+					ResourceName: *res.ResourceName,
+					CreateAt:     *ev.EventTime,
+					Creator:      *ev.Username,
+				}
+				logger.Debug("Adding ressource", *res.ResourceName, *res.ResourceType)
+			}
+		}
+	}
+
+	return cloudTrailSecGrpInfo
 }
 
 func (a AWS) DescribeImages(accountId string) ([]ec2Types.Image, error) {

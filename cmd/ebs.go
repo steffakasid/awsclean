@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	logger "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -34,7 +35,7 @@ Examples:
 		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
 		internal.CheckError(err, logger.Fatalf)
 
-		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig)
+		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig, cloudtrail.NewFromConfig)
 		ebsclean := ebsclean.NewInstance(awsClient, olderthenDuration, viper.GetBool(dryrun), viper.GetBool(showtags))
 
 		ebsclean.DeleteUnusedEBSVolumes()

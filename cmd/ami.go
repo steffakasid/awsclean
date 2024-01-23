@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -37,7 +38,7 @@ Examples:
 	Run: func(cmd *cobra.Command, args []string) {
 		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
 		internal.CheckError(err, logger.Fatalf)
-		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig)
+		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig, cloudtrail.NewFromConfig)
 
 		amiclean := amiclean.NewInstance(awsClient, olderthenDuration, viper.GetString(account), viper.GetBool(dryrun), viper.GetBool(launchTpl), viper.GetStringSlice(ignore))
 		amiclean.GetUsedAMIs()

@@ -4,14 +4,11 @@ Copyright © 2023 steffakasid
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"log"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
-	"github.com/aws/aws-sdk-go-v2/service/cloudtrail/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	logger "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -37,52 +34,14 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var nextToken string = "empty"
+		log.Println("Nothing to see here until now")
+		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
+		internal.CheckError(err, logger.Fatalf)
 
-		// olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
-		// internal.CheckError(err, logger.Fatalf)
+		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig, cloudtrail.NewFromConfig)
 
-		cfg, _ := config.LoadDefaultConfig(context.TODO())
-		cloudtrailclient := cloudtrail.NewFromConfig(cfg)
-
-		for nextToken != "" {
-			lookup := &cloudtrail.LookupEventsInput{
-				LookupAttributes: []types.LookupAttribute{
-					{
-						AttributeKey:   types.LookupAttributeKeyEventName,
-						AttributeValue: aws.String("CreateSecurityGroup"),
-					},
-				},
-			}
-			// We only get CloudTrailEvents of the last 90d: https://docs.aws.amazon.com/sdk-for-go/api/service/cloudtrail/#CloudTrail.LookupEvents
-			// ResouceName: vpc-a51078cd
-			// ResouceName: eksctl-eks-dev-nodegroup-apic-gw-1a-green-SG-16ACVO6XMU6HE
-			// ResouceName: sg-018ce2cbe787b04ef
-			// Time 2024-01-12 14:37:43 +0000 UTC
-			// Wer ist schuld? `email@adress.com`
-			// ---------------------------------------------
-			out, err := cloudtrailclient.LookupEvents(context.TODO(), lookup)
-			if nextToken != "empty" {
-				lookup.NextToken = aws.String(nextToken)
-			}
-			nextToken = *out.NextToken
-			cobra.CheckErr(err)
-
-			for _, ev := range out.Events {
-				for _, res := range ev.Resources {
-					fmt.Println("ResouceName:", *res.ResourceName)
-				}
-				fmt.Println("Time", ev.EventTime)
-				fmt.Println("Wer ist schuld?", *ev.Username)
-				fmt.Println("---------------------------------------------")
-				fmt.Println()
-			}
-		}
-
-		// awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig)
-
-		// secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, viper.GetBool(dryrun), viper.GetBool(showtags))
-		// secgrp.DeleteUnusedSecurityGroups()
+		secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, viper.GetBool(dryrun), viper.GetBool(showtags))
+		secgrp.DeleteUnusedSecurityGroups()
 	},
 }
 
@@ -103,7 +62,7 @@ Examples:
 		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
 		internal.CheckError(err, logger.Fatalf)
 
-		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig)
+		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig, cloudtrail.NewFromConfig)
 		secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, viper.GetBool(dryrun), viper.GetBool(showtags))
 
 		secGrps, err := secgrp.GetSecurityGroups(viper.GetBool(onlyUnused))
