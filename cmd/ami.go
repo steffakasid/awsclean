@@ -31,10 +31,10 @@ owner (AWS account) of AMIs and a duration how much older an AMI must be before
 it gets deleted. The default duration is set to 7 days.
 
 Examples:
-  amiclean                      scan all AMIs owned by self and delete them if they are unused and older then 7 days.                   
-  amiclean --account 2451251    scan all AMIs of self and were AWS account 2451251 are owner
-  amiclean --dry-run            do not delete anything just show what you would do
-  amiclean --older-then 5w		delete all images which are older then 5w and are unused`,
+  awsclean ami                      scan all AMIs owned by self and delete them if they are unused and older then 7 days.                   
+  awsclean ami --account 2451251    scan all AMIs of self and were AWS account 2451251 are owner
+  awsclean ami --dry-run            do not delete anything just show what you would do
+  awsclean ami --older-then 5w	    delete all images which are older then 5w and are unused`,
 	Run: func(cmd *cobra.Command, args []string) {
 		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
 		internal.CheckError(err, logger.Fatalf)

@@ -21,6 +21,7 @@ import (
 // Constants used in command flags
 const (
 	onlyUnused = "only-unused"
+	createdAgo = "created-ago"
 )
 
 // secgrpCmd represents the secgrp command
@@ -33,16 +34,6 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		log.Println("Nothing to see here until now")
-		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
-		internal.CheckError(err, logger.Fatalf)
-
-		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig, cloudtrail.NewFromConfig)
-
-		secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, viper.GetBool(dryrun), viper.GetBool(showtags))
-		secgrp.DeleteUnusedSecurityGroups()
-	},
 }
 
 // secGrpListCmd represents the list command
@@ -60,12 +51,15 @@ Examples:
   awsclean secgrp list --show-tags      print out the SecurityGroups with their tags`,
 	Run: func(cmd *cobra.Command, args []string) {
 		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
-		internal.CheckError(err, logger.Fatalf)
+		cobra.CheckErr(err)
+
+		createdAgoDuration, err := str2duration.ParseDuration(viper.GetString(createdAgo))
+		cobra.CheckErr(err)
 
 		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig, cloudtrail.NewFromConfig)
-		secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, viper.GetBool(dryrun), viper.GetBool(showtags))
+		secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, &createdAgoDuration, viper.GetBool(dryrun), viper.GetBool(onlyUnused), viper.GetBool(showtags))
 
-		secGrps, err := secgrp.GetSecurityGroups(viper.GetBool(onlyUnused))
+		secGrps, err := secgrp.GetSecurityGroups()
 		cobra.CheckErr(err)
 
 		fmt.Println("ID\t\tName\t\tCreationDate")
@@ -80,7 +74,17 @@ var secGrpDeleteCmd = &cobra.Command{
 	Short: "Delte older securityGrp from connected AWS account",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Fatal("NOT IMPLEMENTED")
+		log.Println("Nothing to see here until now")
+		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
+		internal.CheckError(err, logger.Fatalf)
+
+		createdAgoDuration, err := str2duration.ParseDuration(viper.GetString(createdAgo))
+		cobra.CheckErr(err)
+
+		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig, cloudtrail.NewFromConfig)
+
+		secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, &createdAgoDuration, viper.GetBool(dryrun), viper.GetBool(onlyUnused), viper.GetBool(showtags))
+		secgrp.DeleteUnusedSecurityGroups()
 	},
 }
 
@@ -90,6 +94,7 @@ func init() {
 	// Implement flags here
 	secGrpListFlags := secGrpListCmd.Flags()
 	secGrpListFlags.BoolP(onlyUnused, "u", false, "defines if only-unused SecurityGroups are listed or all [Default: false]")
+	secGrpListFlags.StringP(createdAgo, "c", "", "only list security groups which were created x-days ago. We can only reach back 90 days (e.g. 1m)")
 
 	// Add Child commands here
 	secgrpCmd.AddCommand(secGrpListCmd)
