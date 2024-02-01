@@ -52,13 +52,13 @@ func TestGetSecurityGroups(t *testing.T) {
 			SecurityGroups: []types.SecurityGroup{
 				{
 					GroupId:   aws.String("5678"),
-					GroupName: aws.String("some name"),
+					GroupName: aws.String("some name2"),
 				},
 			},
 		}
 		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts2).Return(expectedOut2, nil).Once()
 
-		secGrps, err := SUT.GetSecurityGroups(dryRun)
+		secGrps, err := SUT.GetSecurityGroups(dryRun, SecurityGroups{})
 		require.NoError(t, err)
 		assert.Len(t, secGrps, 2)
 		mock.AssertExpectations(t)
@@ -91,7 +91,7 @@ func TestGetSecurityGroups(t *testing.T) {
 		}
 		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts2).Return(nil, fmt.Errorf("Something went wrong")).Once()
 
-		out, err := SUT.GetSecurityGroups(dryRun)
+		out, err := SUT.GetSecurityGroups(dryRun, SecurityGroups{})
 		require.Error(t, err)
 		require.EqualError(t, err, "Something went wrong")
 
@@ -143,10 +143,10 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts2).Return(&expectedOut2, nil).Once()
 
 		secGrps := SecurityGroups{
-			SecurityGroup{
+			"Group1": SecurityGroup{
 				ID: expectedGrpID1,
 			},
-			SecurityGroup{
+			"Group2": SecurityGroup{
 				ID: expectedGrpID2,
 			},
 		}
@@ -172,7 +172,7 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		expectedOut1 := ec2.DescribeNetworkInterfacesOutput{}
 		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts1).Return(&expectedOut1, nil).Once()
 
-		notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI(SecurityGroups{SecurityGroup{ID: expectedGrpID1}}, dryRun)
+		notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI(SecurityGroups{"Group1": SecurityGroup{ID: expectedGrpID1}}, dryRun)
 		require.NoError(t, err)
 		assert.Len(t, notUsedSecGrps, 1)
 
@@ -219,8 +219,8 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts2).Return(nil, fmt.Errorf("Something went wrong")).Once()
 
 		secGrps := SecurityGroups{
-			SecurityGroup{ID: expectedGrpID1},
-			SecurityGroup{ID: expectedGrpID2},
+			"Group1": SecurityGroup{ID: expectedGrpID1},
+			"Group2": SecurityGroup{ID: expectedGrpID2},
 		}
 		notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI(secGrps, dryRun)
 		require.Error(t, err)

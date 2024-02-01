@@ -61,26 +61,36 @@ func NewAWSClient(
 	return aws
 }
 
-func (a *AWS) GetSecurityGroups(dryRun bool) (SecurityGroups, error) {
-	secGrps := SecurityGroups{}
+func (a *AWS) GetSecurityGroups(dryRun bool, secGrps SecurityGroups) (SecurityGroups, error) {
+	secGrpsRet := SecurityGroups{}
+
+	secGrpNames := []string{}
+	for _, secGrp := range secGrps {
+		secGrpNames = append(secGrpNames, secGrp.Name)
+	}
 
 	in := &ec2.DescribeSecurityGroupsInput{
 		DryRun:     aws.Bool(dryRun),
 		MaxResults: aws.Int32(100),
 	}
 
+	if len(secGrpNames) > 0 {
+		in.GroupNames = secGrpNames
+	}
+
 	for {
 		out, err := a.ec2.DescribeSecurityGroups(context.TODO(), in)
 		CheckError(err, logger.Debugf)
 		if nil != err {
-			return secGrps, err
+			return secGrpsRet, err
 		}
 
 		for _, secGrp := range out.SecurityGroups {
-			secGrps = append(secGrps, SecurityGroup{
+
+			secGrpsRet[*secGrp.GroupName] = SecurityGroup{
 				Name: *secGrp.GroupName,
 				ID:   *secGrp.GroupId,
-			})
+			}
 		}
 
 		if out.NextToken != nil {
@@ -90,8 +100,8 @@ func (a *AWS) GetSecurityGroups(dryRun bool) (SecurityGroups, error) {
 		}
 	}
 
-	logger.Debug("SecurityGroups[]:", secGrps)
-	return secGrps, nil
+	logger.Debug("SecurityGroups[]:", secGrpsRet)
+	return secGrpsRet, nil
 }
 
 func (a *AWS) GetNotUsedSecGrpsFromENI(secGrp SecurityGroups, dryRun bool) (SecurityGroups, error) {
@@ -114,11 +124,56 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrp SecurityGroups, dryRun bool) (Secu
 			return notUseSecGrps, err
 		}
 		if len(out.NetworkInterfaces) == 0 {
-			logger.Debug("No ENI attached to group with ID: ", secGrp.ID)
-			notUseSecGrps = append(notUseSecGrps, secGrp)
+			logger.Debug("No ENI attached to group with ID: ", secGrp.ID, secGrp.Name)
+			notUseSecGrps[secGrp.Name] = secGrp
 		}
 	}
 	return notUseSecGrps, nil
+}
+
+func (a AWS) GetCloudTrailForSecGroups(starttime, endtime *time.Time) SecurityGroups {
+	var nextToken string = "empty"
+
+	secGrps := SecurityGroups{}
+
+	for nextToken != "" {
+		lookup := &cloudtrail.LookupEventsInput{
+			StartTime: starttime,
+			EndTime:   endtime,
+			LookupAttributes: []types.LookupAttribute{
+				{
+					AttributeKey:   types.LookupAttributeKeyEventName,
+					AttributeValue: aws.String("CreateSecurityGroup"),
+				},
+			},
+		}
+		// We only get CloudTrailEvents of the last 90d: https://docs.aws.amazon.com/sdk-for-go/api/service/cloudtrail/#CloudTrail.LookupEvents
+		// ResouceName: vpc-a51078cd
+		// ResouceName: eksctl-eks-dev-nodegroup-apic-gw-1a-green-SG-16ACVO6XMU6HE
+		// ResouceName: sg-018ce2cbe787b04ef
+		// Time 2024-01-12 14:37:43 +0000 UTC
+		// Wer ist schuld? `email@adress.com`
+		// ---------------------------------------------
+		out, err := a.cloudtrail.LookupEvents(context.TODO(), lookup)
+		if nextToken != "empty" {
+			lookup.NextToken = aws.String(nextToken)
+		}
+		nextToken = *out.NextToken
+		CheckError(err, logger.Errorf)
+
+		for _, ev := range out.Events {
+			for _, res := range ev.Resources {
+				secGrps[*res.ResourceName] = SecurityGroup{
+					Name:         *res.ResourceName,
+					CreationTime: ev.EventTime,
+					Creator:      *ev.Username,
+				}
+				logger.Debug("Adding ressource", *res.ResourceName, *res.ResourceType)
+			}
+		}
+	}
+
+	return secGrps
 }
 
 func (a *AWS) DeleteSecurityGroup(secGrp SecurityGroup, dryrun bool) error {
@@ -185,56 +240,6 @@ func (a *AWS) GetUsedAMIsFromLaunchTpls() []string {
 	}
 	logger.Debug("UsedImages[] from Launch Templates", usedImages)
 	return usedImages
-}
-
-type cloudTrailSecGrp struct {
-	ResourceName string
-	CreateAt     time.Time
-	Creator      string
-}
-type cloudTrailInfo map[string]cloudTrailSecGrp
-
-func (a AWS) GetCloudTrailForSecGroups() cloudTrailInfo {
-	var nextToken string = "empty"
-
-	cloudTrailSecGrpInfo := cloudTrailInfo{}
-
-	for nextToken != "" {
-		lookup := &cloudtrail.LookupEventsInput{
-			LookupAttributes: []types.LookupAttribute{
-				{
-					AttributeKey:   types.LookupAttributeKeyEventName,
-					AttributeValue: aws.String("CreateSecurityGroup"),
-				},
-			},
-		}
-		// We only get CloudTrailEvents of the last 90d: https://docs.aws.amazon.com/sdk-for-go/api/service/cloudtrail/#CloudTrail.LookupEvents
-		// ResouceName: vpc-a51078cd
-		// ResouceName: eksctl-eks-dev-nodegroup-apic-gw-1a-green-SG-16ACVO6XMU6HE
-		// ResouceName: sg-018ce2cbe787b04ef
-		// Time 2024-01-12 14:37:43 +0000 UTC
-		// Wer ist schuld? `email@adress.com`
-		// ---------------------------------------------
-		out, err := a.cloudtrail.LookupEvents(context.TODO(), lookup)
-		if nextToken != "empty" {
-			lookup.NextToken = aws.String(nextToken)
-		}
-		nextToken = *out.NextToken
-		CheckError(err, logger.Errorf)
-
-		for _, ev := range out.Events {
-			for _, res := range ev.Resources {
-				cloudTrailSecGrpInfo[*res.ResourceName] = cloudTrailSecGrp{
-					ResourceName: *res.ResourceName,
-					CreateAt:     *ev.EventTime,
-					Creator:      *ev.Username,
-				}
-				logger.Debug("Adding ressource", *res.ResourceName, *res.ResourceType)
-			}
-		}
-	}
-
-	return cloudTrailSecGrpInfo
 }
 
 func (a AWS) DescribeImages(accountId string) ([]ec2Types.Image, error) {

@@ -9,7 +9,7 @@ type SecurityGroup struct {
 	Creator      string
 }
 
-type SecurityGroups = []SecurityGroup
+type SecurityGroups = map[string]SecurityGroup
 
 func AddDetailsToGrp(groupName, creator string, creationTime *time.Time, grps *SecurityGroups) {
 	for _, grp := range *grps {
