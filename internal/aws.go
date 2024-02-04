@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
-	"github.com/aws/aws-sdk-go-v2/service/cloudtrail/types"
+	cloudtrailTypes "github.com/aws/aws-sdk-go-v2/service/cloudtrail/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/smithy-go"
@@ -140,12 +140,17 @@ func (a AWS) GetCloudTrailForSecGroups(starttime, endtime *time.Time) SecurityGr
 		lookup := &cloudtrail.LookupEventsInput{
 			StartTime: starttime,
 			EndTime:   endtime,
-			LookupAttributes: []types.LookupAttribute{
+			LookupAttributes: []cloudtrailTypes.LookupAttribute{
 				{
-					AttributeKey:   types.LookupAttributeKeyEventName,
+					AttributeKey:   cloudtrailTypes.LookupAttributeKeyEventName,
 					AttributeValue: aws.String("CreateSecurityGroup"),
 				},
 			},
+		}
+		if nextToken != "empty" {
+			lookup.NextToken = aws.String(nextToken)
+		} else {
+			nextToken = ""
 		}
 		// We only get CloudTrailEvents of the last 90d: https://docs.aws.amazon.com/sdk-for-go/api/service/cloudtrail/#CloudTrail.LookupEvents
 		// ResouceName: vpc-a51078cd
@@ -155,10 +160,9 @@ func (a AWS) GetCloudTrailForSecGroups(starttime, endtime *time.Time) SecurityGr
 		// Wer ist schuld? `email@adress.com`
 		// ---------------------------------------------
 		out, err := a.cloudtrail.LookupEvents(context.TODO(), lookup)
-		if nextToken != "empty" {
-			lookup.NextToken = aws.String(nextToken)
+		if out.NextToken != nil {
+			nextToken = *out.NextToken
 		}
-		nextToken = *out.NextToken
 		CheckError(err, logger.Errorf)
 
 		for _, ev := range out.Events {
@@ -177,6 +181,7 @@ func (a AWS) GetCloudTrailForSecGroups(starttime, endtime *time.Time) SecurityGr
 }
 
 func (a *AWS) DeleteSecurityGroup(secGrp SecurityGroup, dryrun bool) error {
+	logger.Debugf("DeleteSecurityGroup(%s - %s), drydrun: %t", secGrp.Name, secGrp.ID, dryrun)
 
 	input := &ec2.DeleteSecurityGroupInput{
 		DryRun:  &dryrun,

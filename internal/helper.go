@@ -1,6 +1,8 @@
 package internal
 
-import "regexp"
+import (
+	"regexp"
+)
 
 func Contains(arr []string, elem string) bool {
 	for _, itm := range arr {

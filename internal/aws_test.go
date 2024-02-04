@@ -5,8 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
+	cloudtrailTypes "github.com/aws/aws-sdk-go-v2/service/cloudtrail/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/smithy-go"
@@ -15,11 +18,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupSUT() (*AWS, *mocks.MockEc2client) {
-	ec2ClientMock := &mocks.MockEc2client{}
-	cloudTrailMock := &mocks.MockCloudTrail{}
+func setupSUT(t *testing.T) (*AWS, *mocks.MockEc2client, *mocks.MockCloudTrail) {
+	ec2ClientMock := mocks.NewMockEc2client(t)
+	cloudTrailMock := mocks.NewMockCloudTrail(t)
 	SUT := NewFromInterface(ec2ClientMock, cloudTrailMock)
-	return SUT, ec2ClientMock
+	return SUT, ec2ClientMock, cloudTrailMock
 }
 
 func TestGetSecurityGroups(t *testing.T) {
@@ -27,7 +30,7 @@ func TestGetSecurityGroups(t *testing.T) {
 		dryRun := false
 		expectedToken := "expected next token"
 
-		SUT, mock := setupSUT()
+		SUT, mock, _ := setupSUT(t)
 
 		expectedOpts := &ec2.DescribeSecurityGroupsInput{
 			DryRun:     aws.Bool(dryRun),
@@ -68,7 +71,7 @@ func TestGetSecurityGroups(t *testing.T) {
 		dryRun := false
 		expectedToken := "expected next token"
 
-		SUT, mock := setupSUT()
+		SUT, mock, _ := setupSUT(t)
 
 		expectedOpts := &ec2.DescribeSecurityGroupsInput{
 			DryRun:     aws.Bool(dryRun),
@@ -109,7 +112,7 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		expectedGrpID1 := "1234"
 		expectedGrpID2 := "5678"
 
-		SUT, mock := setupSUT()
+		SUT, mock, _ := setupSUT(t)
 
 		expectedOpts1 := &ec2.DescribeNetworkInterfacesInput{
 			DryRun: aws.Bool(dryRun),
@@ -160,7 +163,7 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		dryRun := false
 		expectedGrpID1 := "1234"
 
-		SUT, mock := setupSUT()
+		SUT, mock, _ := setupSUT(t)
 
 		expectedOpts1 := &ec2.DescribeNetworkInterfacesInput{
 			DryRun: aws.Bool(dryRun),
@@ -192,7 +195,7 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		expectedGrpID1 := "1234"
 		expectedGrpID2 := "5678"
 
-		SUT, mock := setupSUT()
+		SUT, mock, _ := setupSUT(t)
 
 		expectedOpts1 := &ec2.DescribeNetworkInterfacesInput{
 			DryRun: aws.Bool(dryRun),
@@ -231,12 +234,56 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 	})
 }
 
+func TestGetCloudTrailForSecGroups(t *testing.T) {
+
+	t.Run("Success", func(t *testing.T) {
+		starttime, err := time.Parse(time.DateTime, "2006-01-02 15:04:05")
+		require.NoError(t, err)
+
+		endtime, err := time.Parse(time.DateTime, "2006-01-30 15:04:05")
+		require.NoError(t, err)
+
+		SUT, ec2Mock, cloudtrailMOck := setupSUT(t)
+
+		lookupEventsIn := &cloudtrail.LookupEventsInput{
+			StartTime: &starttime,
+			EndTime:   &endtime,
+			LookupAttributes: []cloudtrailTypes.LookupAttribute{
+				{
+					AttributeKey:   cloudtrailTypes.LookupAttributeKeyEventName,
+					AttributeValue: aws.String("CreateSecurityGroup"),
+				},
+			},
+		}
+		cloudtrailMOck.EXPECT().LookupEvents(context.TODO(), lookupEventsIn).Return(&cloudtrail.LookupEventsOutput{
+			Events: []cloudtrailTypes.Event{
+				{
+					EventTime: aws.Time(time.Now()),
+					Username:  aws.String("someuser"),
+					Resources: []cloudtrailTypes.Resource{
+						{
+							ResourceName: aws.String("somename"),
+							ResourceType: aws.String("SecurityGroup"),
+						},
+					},
+				},
+			},
+		}, nil)
+
+		SUT.GetCloudTrailForSecGroups(&starttime, &endtime)
+
+		ec2Mock.AssertExpectations(t)
+		cloudtrailMOck.AssertExpectations(t)
+	})
+
+}
+
 func TestDeleteSecurityGroup(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		expectedSecGrpID := "13210-41231-21-23212-3123"
 		dryRun := false
 
-		SUT, mock := setupSUT()
+		SUT, mock, _ := setupSUT(t)
 		expectedOpts := &ec2.DeleteSecurityGroupInput{
 			DryRun:  &dryRun,
 			GroupId: &expectedSecGrpID,
@@ -251,7 +298,7 @@ func TestDeleteSecurityGroup(t *testing.T) {
 		expectedSecGrpID := "13210-41231-21-23212-3123"
 		dryRun := false
 
-		SUT, mock := setupSUT()
+		SUT, mock, _ := setupSUT(t)
 		expectedOpts := &ec2.DeleteSecurityGroupInput{
 			DryRun:  &dryRun,
 			GroupId: &expectedSecGrpID,
@@ -272,7 +319,7 @@ func TestGetUsedAMIsFromEC2(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		expectedToken := "expected next token"
 
-		SUT, mock := setupSUT()
+		SUT, mock, _ := setupSUT(t)
 
 		expectedOpts1 := &ec2.DescribeInstancesInput{}
 		expectedOutput1 := &ec2.DescribeInstancesOutput{
@@ -316,7 +363,7 @@ func TestGetUsedAMIsFromLaunchTpls(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		expectedNextToken := "expected next token"
 
-		SUT, mock := setupSUT()
+		SUT, mock, _ := setupSUT(t)
 
 		expectedOpts1 := &ec2.DescribeLaunchTemplateVersionsInput{
 			Versions: []string{"$Latest"},
@@ -355,7 +402,7 @@ func TestDescribeImages(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		expetedAccountID := "1234567890"
 
-		SUT, mock := setupSUT()
+		SUT, mock, _ := setupSUT(t)
 		expectedOpts := &ec2.DescribeImagesInput{
 			Owners: []string{"self", expetedAccountID},
 		}
@@ -369,7 +416,7 @@ func TestDescribeImages(t *testing.T) {
 	t.Run("Error from AWS", func(t *testing.T) {
 		expetedAccountID := "1234567890"
 
-		SUT, mock := setupSUT()
+		SUT, mock, _ := setupSUT(t)
 		expectedOpts := &ec2.DescribeImagesInput{
 			Owners: []string{"self", expetedAccountID},
 		}
@@ -390,7 +437,7 @@ func TestDeregisterImage(t *testing.T) {
 		expectedImageID := "1234-543-23ffs"
 		dryRun := false
 
-		SUT, mock := setupSUT()
+		SUT, mock, _ := setupSUT(t)
 
 		expectedOpts := &ec2.DeregisterImageInput{
 			ImageId: &expectedImageID,
@@ -408,7 +455,7 @@ func TestDeregisterImage(t *testing.T) {
 		expectedImageID := "1234-543-23ffs"
 		dryRun := false
 
-		SUT, mock := setupSUT()
+		SUT, mock, _ := setupSUT(t)
 
 		expectedOpts := &ec2.DeregisterImageInput{
 			ImageId: &expectedImageID,
@@ -427,7 +474,7 @@ func TestDeregisterImage(t *testing.T) {
 func TestGetAvailableEBSVolumes(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
-		SUT, mock := setupSUT()
+		SUT, mock, _ := setupSUT(t)
 
 		expectedNextToken := "12345"
 		expectedOpts1 := &ec2.DescribeVolumesInput{}
@@ -459,7 +506,7 @@ func TestDeleteVolume(t *testing.T) {
 		volumeID := "1234-44555-23456"
 		dryRun := false
 
-		SUT, mock := setupSUT()
+		SUT, mock, _ := setupSUT(t)
 
 		expectedOpts := &ec2.DeleteVolumeInput{
 			VolumeId: &volumeID,
@@ -477,7 +524,7 @@ func TestDeleteVolume(t *testing.T) {
 		volumeID := "1234-44555-23456"
 		dryRun := false
 
-		SUT, mock := setupSUT()
+		SUT, mock, _ := setupSUT(t)
 
 		expectedOpts := &ec2.DeleteVolumeInput{
 			VolumeId: &volumeID,

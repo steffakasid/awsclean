@@ -84,7 +84,7 @@ var secGrpDeleteCmd = &cobra.Command{
 		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig, cloudtrail.NewFromConfig)
 
 		secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, &createdAgoDuration, viper.GetBool(dryrun), viper.GetBool(onlyUnused), viper.GetBool(showtags))
-		secgrp.DeleteUnusedSecurityGroups()
+		secgrp.DeleteSecurityGroups()
 	},
 }
 
