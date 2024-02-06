@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	logger "github.com/sirupsen/logrus"
 	"github.com/steffakasid/awsclean/internal"
 )
 
@@ -30,7 +29,7 @@ func (e EBSClean) DeleteUnusedEBSVolumes() {
 
 	today := time.Now()
 	olderThenDate := today.Add(e.olderthen * -1)
-	logger.Debugf("OlderThenDate %v", olderThenDate)
+	internal.Logger.Debugf("OlderThenDate %v", olderThenDate)
 
 	deleted := 0
 	skipped := 0
@@ -54,23 +53,23 @@ func (e EBSClean) DeleteUnusedEBSVolumes() {
 		if volume.State != types.VolumeStateInUse {
 			if volume.CreateTime.Before(olderThenDate) {
 				// now we could delete!
-				logger.Infof("Delete %s", details)
+				internal.Logger.Infof("Delete %s", details)
 				err := e.awsClient.DeleteVolume(*volume.VolumeId, e.dryrun)
 				if err != nil {
-					logger.Errorf("error deleting volume: %s", err)
+					internal.Logger.Errorf("error deleting volume: %s", err)
 				}
 				fmt.Println()
 				deleted++
 			} else {
-				logger.Infof("Skipping %s", details)
+				internal.Logger.Infof("Skipping %s", details)
 				fmt.Println()
 				skipped++
 			}
 		} else {
-			logger.Infof("Filtered out %s\n\n", details)
+			internal.Logger.Infof("Filtered out %s\n\n", details)
 			fmt.Println()
 			filtered++
 		}
 	}
-	logger.Infof("Deleted %d, Skipped %d, Filtered out %d EBS volumes", deleted, skipped, filtered)
+	internal.Logger.Infof("Deleted %d, Skipped %d, Filtered out %d EBS volumes", deleted, skipped, filtered)
 }

@@ -6,11 +6,10 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
 
-	logger "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/steffakasid/awsclean/internal"
 )
 
 // Constants used in command flags
@@ -47,15 +46,14 @@ func Execute(version string) {
 }
 
 func init() {
-	logger.SetLevel(logger.DebugLevel)
 	cobra.OnInitialize(initConfig)
 
 	peristentFlags := rootCmd.PersistentFlags()
 
 	peristentFlags.StringVar(&cfgFile, "config", "", "config file (default is $HOME/.amiclean.yaml)")
 
-	peristentFlags.BoolP(dryrun, "d", false, "If set to true nothing will be deleted. And amiclean will just show what it would do!")
-	peristentFlags.StringP(olderthen, "o", "7d", "Set the duration string (e.g 5d, 1w etc.) how old objeccts must be to be deleted or listed. E.g. if set to 7d, AMIs will be delete which are older then 7 days. For security groups we only get the creation date of the past 90 days.")
+	peristentFlags.BoolP(dryrunFlag, "d", false, "If set to true nothing will be deleted. And amiclean will just show what it would do!")
+	peristentFlags.StringP(olderthenFlag, "o", "7d", "Set the duration string (e.g 5d, 1w etc.) how old objeccts must be to be deleted or listed. E.g. if set to 7d, AMIs will be delete which are older then 7 days. For security groups we only get the creation date of the past 90 days.")
 	peristentFlags.StringP(debugFlag, "", "info", "Enable debugging. Possible Values [debug,info,warn,error,fatal]")
 
 	cobra.CheckErr(viper.BindPFlags(peristentFlags))
@@ -79,28 +77,9 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	} else {
-		logger.Error(err) // Just to show the error from ReadInConfig
+		internal.Logger.Error(err) // Just to show the error from ReadInConfig
 	}
 
-	setLogLevel()
-}
-
-func setLogLevel() {
-	var level logger.Level
-
-	switch strings.ToLower(viper.GetString(debugFlag)) {
-	case "debug":
-		level = logger.DebugLevel
-	case "info":
-		level = logger.InfoLevel
-	case "warn":
-		level = logger.WarnLevel
-	case "error":
-		level = logger.ErrorLevel
-	case "fatal":
-		level = logger.FatalLevel
-	default:
-		level = logger.InfoLevel
-	}
-	logger.SetLevel(level)
+	err := internal.Logger.SetLogLevel(viper.GetString(debugFlag))
+	internal.Logger.Error(err)
 }

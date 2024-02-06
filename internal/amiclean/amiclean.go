@@ -3,7 +3,6 @@ package amiclean
 import (
 	"time"
 
-	logger "github.com/sirupsen/logrus"
 	"github.com/steffakasid/awsclean/internal"
 )
 
@@ -61,20 +60,20 @@ func (a AmiClean) DeleteOlderUnusedAMIs() error {
 			if !ok {
 				creationDate, err := time.Parse("2006-01-02T15:04:05.000Z", *image.CreationDate)
 				if err != nil {
-					logger.Error(err)
+					internal.Logger.Error(err)
 				}
 				if creationDate.Before(olderThenDate) {
-					logger.Infof("Delete %s:%s as it's creationdate %s is older then %s", *image.ImageId, *image.Name, *image.CreationDate, olderThenDate.String())
+					internal.Logger.Infof("Delete %s:%s as it's creationdate %s is older then %s", *image.ImageId, *image.Name, *image.CreationDate, olderThenDate.String())
 					err := a.awsClient.DeregisterImage(*image.ImageId, a.dryrun)
-					internal.CheckError(err, logger.Errorf)
+					internal.CheckError(err, internal.Logger.Errorf)
 				} else {
-					logger.Infof("Keeping %s:%s as it's creationdate %s is newer then %s", *image.ImageId, *image.Name, *image.CreationDate, olderThenDate.String())
+					internal.Logger.Infof("Keeping %s:%s as it's creationdate %s is newer then %s", *image.ImageId, *image.Name, *image.CreationDate, olderThenDate.String())
 				}
 			} else {
-				logger.Infof("Ignored %s", *image.ImageId)
+				internal.Logger.Infof("Ignored %s", *image.ImageId)
 			}
 		} else {
-			logger.Infof("Skipping %s", *image.ImageId)
+			internal.Logger.Infof("Skipping %s", *image.ImageId)
 		}
 	}
 	return nil

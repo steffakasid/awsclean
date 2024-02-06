@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	logger "github.com/sirupsen/logrus"
 	"github.com/steffakasid/awsclean/internal"
 )
 
@@ -62,7 +61,7 @@ func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time) error {
 			if (!secGrp.IsUsed && sec.onlyUnused) || !sec.onlyUnused {
 				err := sec.awsClient.DeleteSecurityGroup(secGrp, sec.dryrun)
 				if err != nil {
-					logger.Errorf("error deleting security group: %s", err)
+					internal.Logger.Errorf("error deleting security group: %s", err)
 				}
 			}
 		}

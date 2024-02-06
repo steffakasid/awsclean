@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
-	logger "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/steffakasid/awsclean/internal"
@@ -32,11 +31,11 @@ Examples:
   awsclean ebs --dry-run        do not delete any EBS volume just show what should be done
   awsclean ebs --show-tags      print out tags of EBS volumes`,
 	Run: func(cmd *cobra.Command, args []string) {
-		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
-		internal.CheckError(err, logger.Fatalf)
+		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthenFlag))
+		cobra.CheckErr(err)
 
 		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig, cloudtrail.NewFromConfig)
-		ebsclean := ebsclean.NewInstance(awsClient, olderthenDuration, viper.GetBool(dryrun), viper.GetBool(showtags))
+		ebsclean := ebsclean.NewInstance(awsClient, olderthenDuration, viper.GetBool(dryrunFlag), viper.GetBool(showtagsFlag))
 
 		ebsclean.DeleteUnusedEBSVolumes()
 	},
@@ -45,6 +44,6 @@ Examples:
 func init() {
 	rootCmd.AddCommand(ebsCmd)
 	ebsFlags := ebsCmd.Flags()
-	ebsFlags.BoolP(showtags, "s", false, "show tags of ebs volumes")
+	ebsFlags.BoolP(showtagsFlag, "s", false, "show tags of ebs volumes")
 	cobra.CheckErr(viper.BindPFlags(ebsFlags))
 }

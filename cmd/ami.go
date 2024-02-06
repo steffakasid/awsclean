@@ -12,8 +12,6 @@ import (
 	"github.com/steffakasid/awsclean/internal"
 	"github.com/steffakasid/awsclean/internal/amiclean"
 	"github.com/xhit/go-str2duration/v2"
-
-	logger "github.com/sirupsen/logrus"
 )
 
 const (
@@ -36,14 +34,14 @@ Examples:
   awsclean ami --dry-run            do not delete anything just show what you would do
   awsclean ami --older-then 5w	    delete all images which are older then 5w and are unused`,
 	Run: func(cmd *cobra.Command, args []string) {
-		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthen))
-		internal.CheckError(err, logger.Fatalf)
+		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthenFlag))
+		internal.CheckError(err, internal.Logger.Fatalf)
 		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig, cloudtrail.NewFromConfig)
 
-		amiclean := amiclean.NewInstance(awsClient, olderthenDuration, viper.GetString(account), viper.GetBool(dryrun), viper.GetBool(launchTpl), viper.GetStringSlice(ignore))
+		amiclean := amiclean.NewInstance(awsClient, olderthenDuration, viper.GetString(accountFlag), viper.GetBool(dryrunFlag), viper.GetBool(launchTplFlag), viper.GetStringSlice(ignoreFlag))
 		amiclean.GetUsedAMIs()
 		err = amiclean.DeleteOlderUnusedAMIs()
-		internal.CheckError(err, logger.Fatalf)
+		internal.CheckError(err, internal.Logger.Fatalf)
 	},
 }
 
@@ -52,9 +50,9 @@ func init() {
 
 	amiFlags := amiCmd.Flags()
 
-	amiFlags.StringArrayP(ignore, "i", []string{}, "Set ignore regex patterns. If a ami name matches the pattern it will be exclueded from cleanup.")
-	amiFlags.BoolP(launchTpl, "l", false, "Additionally scan launch templates for used AMIs.")
-	amiFlags.StringP(account, "a", "", "Set AWS account number to cleanup AMIs. Used to set owner information when selecting AMIs. If not set only 'self' is used.")
+	amiFlags.StringArrayP(ignoreFlag, "i", []string{}, "Set ignore regex patterns. If a ami name matches the pattern it will be exclueded from cleanup.")
+	amiFlags.BoolP(launchTplFlag, "l", false, "Additionally scan launch templates for used AMIs.")
+	amiFlags.StringP(accountFlag, "a", "", "Set AWS account number to cleanup AMIs. Used to set owner information when selecting AMIs. If not set only 'self' is used.")
 
 	cobra.CheckErr(viper.GetViper().BindPFlags(amiFlags))
 }
