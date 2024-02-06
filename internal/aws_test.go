@@ -281,7 +281,7 @@ func TestGetCloudTrailForSecGroups(t *testing.T) {
 			},
 		}, nil)
 
-		SUT.GetCloudTrailForSecGroups(&starttime, &endtime)
+		SUT.GetCloudTrailForSecGroups(starttime, endtime)
 
 		ec2Mock.AssertExpectations(t)
 		cloudtrailMOck.AssertExpectations(t)

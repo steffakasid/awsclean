@@ -15,11 +15,9 @@ type SecGrp struct {
 	dryrun     bool
 	onlyUnused bool
 	showTags   bool
-	endTime    *time.Time
 }
 
 func NewInstance(awsClient *internal.AWS, olderthen, createdAgo *time.Duration, dryrun, onlyUnused, showTags bool) *SecGrp {
-	now := time.Now()
 	return &SecGrp{
 		awsClient:  awsClient,
 		olderthen:  olderthen,
@@ -27,18 +25,12 @@ func NewInstance(awsClient *internal.AWS, olderthen, createdAgo *time.Duration, 
 		dryrun:     dryrun,
 		onlyUnused: onlyUnused,
 		showTags:   showTags,
-		endTime:    &now,
 	}
 }
 
-func (sec SecGrp) GetSecurityGroups() (internal.SecurityGroups, error) {
+func (sec SecGrp) GetSecurityGroups(startTime, endTime time.Time) (internal.SecurityGroups, error) {
 
-	var starttime time.Time
-
-	if nil != sec.createdAgo {
-		starttime = sec.endTime.Add(*sec.createdAgo * -1)
-	}
-	secGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(&starttime, sec.endTime)
+	secGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(startTime, endTime)
 	secGrps, err := sec.awsClient.GetSecurityGroups(sec.dryrun, secGrpsFromCCTrail)
 	internal.AppendAll(secGrpsFromCCTrail, secGrps)
 
@@ -57,8 +49,8 @@ func (sec SecGrp) GetSecurityGroups() (internal.SecurityGroups, error) {
 	return secGrps, nil
 }
 
-func (sec SecGrp) DeleteSecurityGroups() error {
-	secGrps, err := sec.GetSecurityGroups()
+func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time) error {
+	secGrps, err := sec.GetSecurityGroups(startTime, endTime)
 	if err != nil {
 		return err
 	}

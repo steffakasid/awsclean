@@ -3,6 +3,8 @@ package internal
 import (
 	"fmt"
 	"time"
+
+	logger "github.com/sirupsen/logrus"
 )
 
 type SecurityGroup struct {
@@ -50,7 +52,8 @@ func AddOrUpdate(grps SecurityGroups, name, ID, creator string, creationTime *ti
 func AppendAll(src, target SecurityGroups) {
 	for key, val := range src {
 		if tgtObj, exists := target[key]; exists {
-			mergeFields(&val, &tgtObj)
+			err := mergeFields(&val, &tgtObj)
+			logger.Error(err)
 			target[key] = tgtObj
 		} else {
 			target[key] = val

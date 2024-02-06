@@ -135,15 +135,15 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups, dryRun bool) (Sec
 	return notUsedSecGrps, nil
 }
 
-func (a AWS) GetCloudTrailForSecGroups(starttime, endtime *time.Time) SecurityGroups {
+func (a AWS) GetCloudTrailForSecGroups(startTime, endTime time.Time) SecurityGroups {
 	var nextToken string = "empty"
 
 	secGrps := SecurityGroups{}
 
 	for nextToken != "" {
 		lookup := &cloudtrail.LookupEventsInput{
-			StartTime: starttime,
-			EndTime:   endtime,
+			StartTime: aws.Time(startTime),
+			EndTime:   aws.Time(endTime),
 			LookupAttributes: []cloudtrailTypes.LookupAttribute{
 				{
 					AttributeKey:   cloudtrailTypes.LookupAttributeKeyEventName,

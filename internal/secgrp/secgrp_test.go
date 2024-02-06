@@ -18,7 +18,13 @@ import (
 	"github.com/xhit/go-str2duration/v2"
 )
 
+var ninetyDayOffset time.Duration
+
 func setupSUT(t *testing.T, olderthen, createdAgo *time.Duration, dryrun, onlyUnused, showTags bool) (*SecGrp, *mocks.MockEc2client, *mocks.MockCloudTrail) {
+	var err error
+	ninetyDayOffset, err = str2duration.ParseDuration("90d")
+	require.NoError(t, err)
+
 	ec2ClientMock := mocks.NewMockEc2client(t)
 	cloudTrailMock := mocks.NewMockCloudTrail(t)
 	awsClient := internal.NewFromInterface(ec2ClientMock, cloudTrailMock)
@@ -30,6 +36,9 @@ func TestGetSecurityGroups(t *testing.T) {
 	t.Run("Success Get All", func(t *testing.T) {
 		expectedSecGrpID := "6987698-1243"
 		expectedSecGrpName := "abcde-secgrp"
+		expectedEndtime, err := time.Parse(time.DateTime, "2006-01-02 15:04:05")
+		require.NoError(t, err)
+		expectedStarttime := expectedEndtime.Add(ninetyDayOffset * -1)
 
 		dryrun := false
 		unused := true
@@ -37,14 +46,8 @@ func TestGetSecurityGroups(t *testing.T) {
 
 		SUT, ec2Mock, cloudTrailMock := setupSUT(t, nil, nil, dryrun, unused, showTags)
 
-		expectedEndtime, err := time.Parse(time.DateTime, "2006-01-02 15:04:05")
-		require.NoError(t, err)
-		SUT.endTime = &expectedEndtime
-
-		expectedStartTime := time.Time{}
-
 		expectedLookupEventsIn := &cloudtrail.LookupEventsInput{
-			StartTime: &expectedStartTime,
+			StartTime: &expectedStarttime,
 			EndTime:   &expectedEndtime,
 			LookupAttributes: []cloudtrailTypes.LookupAttribute{
 				{
@@ -94,7 +97,7 @@ func TestGetSecurityGroups(t *testing.T) {
 		expectedDescribeNetIfaceOut := &ec2.DescribeNetworkInterfacesOutput{}
 		ec2Mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedDescribeNetIfaceOpts).Return(expectedDescribeNetIfaceOut, nil).Once()
 
-		secgrps, err := SUT.GetSecurityGroups()
+		secgrps, err := SUT.GetSecurityGroups(expectedStarttime, expectedEndtime)
 		require.NoError(t, err)
 		ec2Mock.AssertExpectations(t)
 		assert.Len(t, secgrps, 1)
@@ -109,6 +112,9 @@ func TestDeleteSecurityGroups(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		expectedSecGrpID := "6987698-1243"
 		expectedSecGrpName := "abcde-secgrp"
+		expectedEndtime, err := time.Parse(time.DateTime, "2006-01-02 15:04:05")
+		require.NoError(t, err)
+		expectedStarttime := expectedEndtime.Add(ninetyDayOffset * -1)
 
 		dryrun := false
 		onlyUnused := false
@@ -116,14 +122,8 @@ func TestDeleteSecurityGroups(t *testing.T) {
 
 		SUT, ec2Mock, cloudTrailMock := setupSUT(t, nil, nil, dryrun, onlyUnused, showTags)
 
-		expectedEndtime, err := time.Parse(time.DateTime, "2006-01-02 15:04:05")
-		require.NoError(t, err)
-		SUT.endTime = &expectedEndtime
-
-		expectedStartTime := time.Time{}
-
 		expectedLookupEventsIn := &cloudtrail.LookupEventsInput{
-			StartTime: &expectedStartTime,
+			StartTime: &expectedStarttime,
 			EndTime:   &expectedEndtime,
 			LookupAttributes: []cloudtrailTypes.LookupAttribute{
 				{
@@ -153,7 +153,7 @@ func TestDeleteSecurityGroups(t *testing.T) {
 		}
 		ec2Mock.EXPECT().DeleteSecurityGroup(context.TODO(), expectedDeleteSecGrpOpts).Return(&ec2.DeleteSecurityGroupOutput{}, nil).Once()
 
-		err = SUT.DeleteSecurityGroups()
+		err = SUT.DeleteSecurityGroups(expectedStarttime, expectedEndtime)
 		require.NoError(t, err)
 		ec2Mock.AssertExpectations(t)
 		cloudTrailMock.AssertExpectations(t)
@@ -162,6 +162,9 @@ func TestDeleteSecurityGroups(t *testing.T) {
 	t.Run("Success OnlyUnused", func(t *testing.T) {
 		expectedSecGrpID := "6987698-1243"
 		expectedSecGrpName := "abcde-secgrp"
+		expectedEndtime, err := time.Parse(time.DateTime, "2006-01-02 15:04:05")
+		require.NoError(t, err)
+		expectedStarttime := expectedEndtime.Add(ninetyDayOffset * -1)
 
 		dryrun := false
 		onlyUnused := true
@@ -171,14 +174,8 @@ func TestDeleteSecurityGroups(t *testing.T) {
 
 		SUT, ec2Mock, cloudTrailMock := setupSUT(t, &olderthen, nil, dryrun, onlyUnused, showTags)
 
-		expectedEndtime, err := time.Parse(time.DateTime, "2006-01-02 15:04:05")
-		require.NoError(t, err)
-		SUT.endTime = &expectedEndtime
-
-		expectedStartTime := time.Time{}
-
 		expectedLookupEventsIn := &cloudtrail.LookupEventsInput{
-			StartTime: &expectedStartTime,
+			StartTime: &expectedStarttime,
 			EndTime:   &expectedEndtime,
 			LookupAttributes: []cloudtrailTypes.LookupAttribute{
 				{
@@ -233,7 +230,7 @@ func TestDeleteSecurityGroups(t *testing.T) {
 		}
 		ec2Mock.EXPECT().DeleteSecurityGroup(context.TODO(), expectedDeleteSecGrpOpts).Return(&ec2.DeleteSecurityGroupOutput{}, nil).Once()
 
-		err = SUT.DeleteSecurityGroups()
+		err = SUT.DeleteSecurityGroups(expectedStarttime, expectedEndtime)
 		require.NoError(t, err)
 
 		ec2Mock.AssertExpectations(t)
