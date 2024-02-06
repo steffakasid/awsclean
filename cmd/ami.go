@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	account   = "account"
-	launchTpl = "launch-templates"
-	ignore    = "ignore"
+	accountFlag   = "account"
+	launchTplFlag = "launch-templates"
+	ignoreFlag    = "ignore"
 )
 
 // amiCmd represents the ami command

@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	showtags = "show-tags"
+	showtagsFlag = "show-tags"
 )
 
 // ebsCmd represents the ebs command

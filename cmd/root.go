@@ -14,9 +14,9 @@ import (
 
 // Constants used in command flags
 const (
-	dryrun    = "dry-run"
-	olderthen = "older-then"
-	debugFlag = "debug"
+	dryrunFlag    = "dry-run"
+	olderthenFlag = "older-then"
+	debugFlag     = "debug"
 )
 
 var cfgFile string

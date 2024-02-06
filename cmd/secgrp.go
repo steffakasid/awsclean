@@ -20,10 +20,10 @@ import (
 
 // Constants used in command flags
 const (
-	onlyUnused = "only-unused"
-	createdAgo = "created-ago"
-	startTime  = "start-time"
-	endTime    = "end-time"
+	onlyUnusedFlag = "only-unused"
+	createdAgoFlag = "created-ago"
+	startTimeFlag  = "start-time"
+	endTimeFlag    = "end-time"
 )
 
 // secgrpCmd represents the secgrp command
