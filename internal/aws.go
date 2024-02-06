@@ -87,10 +87,7 @@ func (a *AWS) GetSecurityGroups(dryRun bool, secGrps SecurityGroups) (SecurityGr
 
 		for _, secGrp := range out.SecurityGroups {
 
-			secGrpsRet[*secGrp.GroupName] = SecurityGroup{
-				Name: *secGrp.GroupName,
-				ID:   *secGrp.GroupId,
-			}
+			AddOrUpdate(secGrpsRet, *secGrp.GroupName, *secGrp.GroupId, "", nil, true, []string{})
 		}
 
 		if out.NextToken != nil {
@@ -104,10 +101,10 @@ func (a *AWS) GetSecurityGroups(dryRun bool, secGrps SecurityGroups) (SecurityGr
 	return secGrpsRet, nil
 }
 
-func (a *AWS) GetNotUsedSecGrpsFromENI(secGrp SecurityGroups, dryRun bool) (SecurityGroups, error) {
-	notUseSecGrps := SecurityGroups{}
+func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups, dryRun bool) (SecurityGroups, error) {
+	notUsedSecGrps := SecurityGroups{}
 
-	for _, secGrp := range secGrp {
+	for _, secGrp := range secGrps {
 
 		in := &ec2.DescribeNetworkInterfacesInput{
 			DryRun: aws.Bool(dryRun),
@@ -121,14 +118,21 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrp SecurityGroups, dryRun bool) (Secu
 		out, err := a.ec2.DescribeNetworkInterfaces(context.TODO(), in)
 		CheckError(err, logger.Debugf)
 		if nil != err {
-			return notUseSecGrps, err
+			return notUsedSecGrps, err
 		}
 		if len(out.NetworkInterfaces) == 0 {
 			logger.Debug("No ENI attached to group with ID: ", secGrp.ID, secGrp.Name)
-			notUseSecGrps[secGrp.Name] = secGrp
+			AddOrUpdate(notUsedSecGrps, secGrp.Name, secGrp.ID, secGrp.Creator, secGrp.CreationTime, false, []string{})
+		}
+		if len(out.NetworkInterfaces) > 0 {
+			attachedIfaces := []string{}
+			for _, iface := range out.NetworkInterfaces {
+				attachedIfaces = append(attachedIfaces, *iface.NetworkInterfaceId)
+			}
+			AddOrUpdate(notUsedSecGrps, secGrp.Name, secGrp.ID, secGrp.Creator, secGrp.CreationTime, true, attachedIfaces)
 		}
 	}
-	return notUseSecGrps, nil
+	return notUsedSecGrps, nil
 }
 
 func (a AWS) GetCloudTrailForSecGroups(starttime, endtime *time.Time) SecurityGroups {
@@ -167,11 +171,9 @@ func (a AWS) GetCloudTrailForSecGroups(starttime, endtime *time.Time) SecurityGr
 
 		for _, ev := range out.Events {
 			for _, res := range ev.Resources {
-				secGrps[*res.ResourceName] = SecurityGroup{
-					Name:         *res.ResourceName,
-					CreationTime: ev.EventTime,
-					Creator:      *ev.Username,
-				}
+
+				AddOrUpdate(secGrps, *res.ResourceName, "", *ev.Username, ev.EventTime, true, []string{})
+
 				logger.Debug("Adding ressource", *res.ResourceName, *res.ResourceType)
 			}
 		}

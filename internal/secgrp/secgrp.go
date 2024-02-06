@@ -15,7 +15,7 @@ type SecGrp struct {
 	dryrun     bool
 	onlyUnused bool
 	showTags   bool
-	EndTime    internal.Time
+	endTime    *time.Time
 }
 
 func NewInstance(awsClient *internal.AWS, olderthen, createdAgo *time.Duration, dryrun, onlyUnused, showTags bool) *SecGrp {
@@ -27,7 +27,7 @@ func NewInstance(awsClient *internal.AWS, olderthen, createdAgo *time.Duration, 
 		dryrun:     dryrun,
 		onlyUnused: onlyUnused,
 		showTags:   showTags,
-		EndTime:    internal.NewTime(now),
+		endTime:    &now,
 	}
 }
 
@@ -36,23 +36,25 @@ func (sec SecGrp) GetSecurityGroups() (internal.SecurityGroups, error) {
 	var starttime time.Time
 
 	if nil != sec.createdAgo {
-		starttime = sec.EndTime.Add(*sec.createdAgo * -1)
+		starttime = sec.endTime.Add(*sec.createdAgo * -1)
 	}
-	secGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(&starttime, sec.EndTime.GetTimeP())
-	secGrpsFromCCTrail, err := sec.awsClient.GetSecurityGroups(sec.dryrun, secGrpsFromCCTrail)
+	secGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(&starttime, sec.endTime)
+	secGrps, err := sec.awsClient.GetSecurityGroups(sec.dryrun, secGrpsFromCCTrail)
+	internal.AppendAll(secGrpsFromCCTrail, secGrps)
 
 	if nil != err {
 		return nil, fmt.Errorf("could not get SecurityGroups: %w", err)
 	}
 
 	if sec.onlyUnused || sec.olderthen != nil {
-		notUsed, err := sec.awsClient.GetNotUsedSecGrpsFromENI(secGrpsFromCCTrail, sec.dryrun)
+		notUsed, err := sec.awsClient.GetNotUsedSecGrpsFromENI(secGrps, sec.dryrun)
+		internal.AppendAll(notUsed, secGrps)
 		if nil != err {
 			return nil, fmt.Errorf("could not get not used SecurityGroups from ENIs: %w", err)
 		}
 		return notUsed, nil
 	}
-	return secGrpsFromCCTrail, nil
+	return secGrps, nil
 }
 
 func (sec SecGrp) DeleteSecurityGroups() error {
@@ -63,9 +65,14 @@ func (sec SecGrp) DeleteSecurityGroups() error {
 
 	for _, secGrp := range secGrps {
 
-		if secGrp.CreationTime == nil || secGrp.CreationTime.Before(time.Now().Add(*sec.olderthen*-1)) {
-			err := sec.awsClient.DeleteSecurityGroup(secGrp, sec.dryrun)
-			logger.Errorf("error deleting security group: %s", err)
+		if secGrp.CreationTime == nil ||
+			(sec.olderthen != nil && secGrp.CreationTime.Before(time.Now().Add(*sec.olderthen*-1))) {
+			if (!secGrp.IsUsed && sec.onlyUnused) || !sec.onlyUnused {
+				err := sec.awsClient.DeleteSecurityGroup(secGrp, sec.dryrun)
+				if err != nil {
+					logger.Errorf("error deleting security group: %s", err)
+				}
+			}
 		}
 	}
 
