@@ -32,7 +32,7 @@ Examples:
   awsclean ebs --show-tags      print out tags of EBS volumes`,
 	Run: func(cmd *cobra.Command, args []string) {
 		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthenFlag))
-		cobra.CheckErr(err)
+		internal.CheckError(err, internal.Logger.Fatalf)
 
 		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig, cloudtrail.NewFromConfig)
 		ebsclean := ebsclean.NewInstance(awsClient, olderthenDuration, viper.GetBool(dryrunFlag), viper.GetBool(showtagsFlag))
@@ -45,5 +45,5 @@ func init() {
 	rootCmd.AddCommand(ebsCmd)
 	ebsFlags := ebsCmd.Flags()
 	ebsFlags.BoolP(showtagsFlag, "s", false, "show tags of ebs volumes")
-	cobra.CheckErr(viper.BindPFlags(ebsFlags))
+	internal.CheckError(viper.BindPFlags(ebsFlags), internal.Logger.Fatalf)
 }

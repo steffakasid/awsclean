@@ -8,6 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func init() {
+	InitLogger()
+}
+
 func TestAddOrUpdate(t *testing.T) {
 
 	t.Run("Add One New", func(t *testing.T) {

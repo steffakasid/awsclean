@@ -37,6 +37,7 @@ func TestNewInstance(t *testing.T) {
 }
 
 func initAMIClean(ec2ClientMock *mocks.MockEc2client, cloudTrailMock *mocks.MockCloudTrail) *AmiClean {
+	internal.InitLogger()
 	return &AmiClean{
 		awsClient: internal.NewFromInterface(ec2ClientMock, cloudTrailMock),
 	}

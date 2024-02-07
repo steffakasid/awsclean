@@ -40,7 +40,7 @@ to quickly create a Cobra application.`,
 
 // secGrpListCmd represents the list command
 var secGrpListCmd = &cobra.Command{
-	Use:   "secgrp list [options]",
+	Use:   "list [options]",
 	Short: "Just lists securityGrps",
 	Long: `Jus list all securityGrp from connected AWS account.
 	
@@ -53,22 +53,22 @@ Examples:
   awsclean secgrp list --show-tags      print out the SecurityGroups with their tags`,
 	Run: func(cmd *cobra.Command, args []string) {
 		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthenFlag))
-		cobra.CheckErr(err)
+		internal.CheckError(err, internal.Logger.Fatalf)
 
 		createdAgoDuration, err := str2duration.ParseDuration(viper.GetString(createdAgoFlag))
-		cobra.CheckErr(err)
+		internal.CheckError(err, internal.Logger.Fatalf)
 
 		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig, cloudtrail.NewFromConfig)
 		secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, &createdAgoDuration, viper.GetBool(dryrunFlag), viper.GetBool(onlyUnusedFlag), viper.GetBool(showtagsFlag))
 
 		startDatetime, err := time.Parse(time.RFC3339, viper.GetString(startTimeFlag))
-		cobra.CheckErr(err)
+		internal.CheckError(err, internal.Logger.Fatalf)
 
 		endDatetime, err := time.Parse(time.RFC3339, viper.GetString(endTimeFlag))
-		cobra.CheckErr(err)
+		internal.CheckError(err, internal.Logger.Fatalf)
 
 		secGrps, err := secgrp.GetSecurityGroups(startDatetime, endDatetime)
-		cobra.CheckErr(err)
+		internal.CheckError(err, internal.Logger.Fatalf)
 
 		fmt.Println("ID\t\tName\t\tCreationDate")
 		for _, secGrp := range secGrps {
@@ -78,28 +78,29 @@ Examples:
 }
 
 var secGrpDeleteCmd = &cobra.Command{
-	Use:   "secgrp delte [options]",
+	Use:   "delete [options]",
 	Short: "Delte older securityGrp from connected AWS account",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("Nothing to see here until now")
 		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthenFlag))
-		cobra.CheckErr(err)
+		internal.CheckError(err, internal.Logger.Fatalf)
 
 		createdAgoDuration, err := str2duration.ParseDuration(viper.GetString(createdAgoFlag))
-		cobra.CheckErr(err)
+		internal.CheckError(err, internal.Logger.Fatalf)
 
 		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig, cloudtrail.NewFromConfig)
 
 		secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, &createdAgoDuration, viper.GetBool(dryrunFlag), viper.GetBool(onlyUnusedFlag), viper.GetBool(showtagsFlag))
 
 		startDatetime, err := time.Parse(time.RFC3339, viper.GetString(startTimeFlag))
-		cobra.CheckErr(err)
+		internal.CheckError(err, internal.Logger.Fatalf)
 
 		endDatetime, err := time.Parse(time.RFC3339, viper.GetString(endTimeFlag))
-		cobra.CheckErr(err)
+		internal.CheckError(err, internal.Logger.Fatalf)
 
-		secgrp.DeleteSecurityGroups(startDatetime, endDatetime)
+		err = secgrp.DeleteSecurityGroups(startDatetime, endDatetime)
+		internal.CheckError(err, internal.Logger.Fatalf)
 	},
 }
 
@@ -107,19 +108,19 @@ func init() {
 	rootCmd.AddCommand(secgrpCmd)
 
 	ninetyDayOffset, err := str2duration.ParseDuration("90d")
-	cobra.CheckErr(err)
+	internal.CheckError(err, internal.Logger.Fatalf)
 
 	// Implement flags here
 	secGrpListFlags := secGrpListCmd.Flags()
 	secGrpListFlags.BoolP(onlyUnusedFlag, "u", false, "defines if only-unused SecurityGroups are listed or all [Default: false]")
 	secGrpListFlags.StringP(createdAgoFlag, "c", "", "only list security groups which were created x-days ago. We can only reach back 90 days (e.g. 1m)")
-	cobra.CheckErr(viper.BindPFlags(secGrpListFlags))
+	internal.CheckError(viper.BindPFlags(secGrpListFlags), internal.Logger.Fatalf)
 
 	secGrpPersistentFlags := secgrpCmd.PersistentFlags()
 	ninetyDaysAgo := time.Now().Add(ninetyDayOffset * -1)
 	secGrpPersistentFlags.StringP(startTimeFlag, "s", ninetyDaysAgo.Format(time.RFC3339), fmt.Sprintf("Set start datetime using format: %s [default: %s]", time.RFC3339, ninetyDaysAgo.Format(time.RFC3339)))
 	secGrpPersistentFlags.StringP(endTimeFlag, "e", time.Now().Format(time.RFC3339), fmt.Sprintf("Set end datetime using format: %s [default: %s]", time.RFC3339, time.Now().Format(time.RFC3339)))
-	cobra.CheckErr(viper.BindPFlags(secGrpPersistentFlags))
+	internal.CheckError(viper.BindPFlags(secGrpPersistentFlags), internal.Logger.Fatalf)
 
 	// Add Child commands here
 	secgrpCmd.AddCommand(secGrpListCmd)

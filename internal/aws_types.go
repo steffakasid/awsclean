@@ -51,7 +51,9 @@ func AppendAll(src, target SecurityGroups) {
 	for key, val := range src {
 		if tgtObj, exists := target[key]; exists {
 			err := mergeFields(&val, &tgtObj)
-			Logger.Error(err)
+			if err != nil {
+				Logger.Error(err)
+			}
 			target[key] = tgtObj
 		} else {
 			target[key] = val

@@ -19,32 +19,33 @@ type ExtendedSlogLogger struct {
 	*slog.Logger
 }
 
-var Logger ExtendedSlogLogger
+var Logger *ExtendedSlogLogger
 
 var LogLevel = &slog.LevelVar{}
 
-func init() {
-	LogLevel.Set(slog.LevelDebug)
+func InitLogger() {
+	if Logger == nil {
+		LogLevel.Set(slog.LevelDebug)
 
-	opts := &slog.HandlerOptions{
-		Level: LogLevel,
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			if a.Key == slog.LevelKey {
-				level := a.Value.Any().(slog.Level)
-				levelLabel, exists := LevelNames[level]
-				if !exists {
-					levelLabel = level.String()
+		opts := &slog.HandlerOptions{
+			Level: LogLevel,
+			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+				if a.Key == slog.LevelKey {
+					level := a.Value.Any().(slog.Level)
+					levelLabel, exists := LevelNames[level]
+					if !exists {
+						levelLabel = level.String()
+					}
+					a.Value = slog.StringValue(levelLabel)
 				}
-				a.Value = slog.StringValue(levelLabel)
-			}
-			return a
-		},
-	}
+				return a
+			},
+		}
 
-	Logger = ExtendedSlogLogger{
-		slog.New(slog.NewTextHandler(os.Stdout, opts)),
+		Logger = &ExtendedSlogLogger{
+			slog.New(slog.NewTextHandler(os.Stdout, opts)),
+		}
 	}
-
 }
 
 func (l ExtendedSlogLogger) SetLogLevel(lvl string) error {
@@ -64,7 +65,9 @@ func (l ExtendedSlogLogger) Warnf(format string, args ...any) {
 }
 
 func (l ExtendedSlogLogger) Error(err error, args ...any) {
-	l.Logger.Error(err.Error(), args...)
+	if err != nil {
+		l.Logger.Error(err.Error(), args...)
+	}
 }
 
 func (l ExtendedSlogLogger) Errorf(format string, args ...any) {

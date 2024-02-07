@@ -50,6 +50,8 @@ func NewAWSClient(
 	conf func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (cfg aws.Config, err error),
 	ec2InitFunc func(cfg aws.Config, optFns ...func(*ec2.Options)) *ec2.Client,
 	cloudtrailInitFunc func(cfg aws.Config, optFns ...func(*cloudtrail.Options)) *cloudtrail.Client) *AWS {
+
+	InitLogger()
 	aws := &AWS{}
 
 	cfg, err := conf(context.TODO())
@@ -96,7 +98,7 @@ func (a *AWS) GetSecurityGroups(dryRun bool, secGrps SecurityGroups) (SecurityGr
 		}
 	}
 
-	Logger.Debug("SecurityGroups[]:", secGrpsRet)
+	Logger.Debugf("SecurityGroups[]: %v", secGrpsRet)
 	return secGrpsRet, nil
 }
 
@@ -216,7 +218,7 @@ func (a *AWS) GetUsedAMIsFromEC2() []string {
 		}
 		nextToken = *ec2Instances.NextToken
 	}
-	Logger.Debug("UsedImages[] from EC2", usedImages)
+	Logger.Debugf("UsedImages[] from EC2 %v", usedImages)
 	return usedImages
 }
 
@@ -244,7 +246,7 @@ func (a *AWS) GetUsedAMIsFromLaunchTpls() []string {
 		}
 		nextToken = *launchTpls.NextToken
 	}
-	Logger.Debug("UsedImages[] from Launch Templates", usedImages)
+	Logger.Debugf("UsedImages[] from Launch Templates %v", usedImages)
 	return usedImages
 }
 

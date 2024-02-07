@@ -54,5 +54,5 @@ func init() {
 	amiFlags.BoolP(launchTplFlag, "l", false, "Additionally scan launch templates for used AMIs.")
 	amiFlags.StringP(accountFlag, "a", "", "Set AWS account number to cleanup AMIs. Used to set owner information when selecting AMIs. If not set only 'self' is used.")
 
-	cobra.CheckErr(viper.GetViper().BindPFlags(amiFlags))
+	internal.CheckError(viper.BindPFlags(amiFlags), internal.Logger.Fatalf)
 }

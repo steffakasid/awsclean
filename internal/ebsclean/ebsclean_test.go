@@ -18,6 +18,7 @@ import (
 )
 
 func initEBSClean(t *testing.T, ec2ClientMock *mocks.MockEc2client, cloudTrailMock *mocks.MockCloudTrail) *EBSClean {
+	internal.InitLogger()
 	olderthenDuration, err := str2duration.ParseDuration("7d")
 	assert.NoError(t, err)
 	return &EBSClean{

@@ -46,7 +46,7 @@ func Execute(version string) {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(internal.InitLogger, initConfig)
 
 	peristentFlags := rootCmd.PersistentFlags()
 
@@ -56,7 +56,7 @@ func init() {
 	peristentFlags.StringP(olderthenFlag, "o", "7d", "Set the duration string (e.g 5d, 1w etc.) how old objeccts must be to be deleted or listed. E.g. if set to 7d, AMIs will be delete which are older then 7 days. For security groups we only get the creation date of the past 90 days.")
 	peristentFlags.StringP(debugFlag, "", "info", "Enable debugging. Possible Values [debug,info,warn,error,fatal]")
 
-	cobra.CheckErr(viper.BindPFlags(peristentFlags))
+	internal.CheckError(viper.BindPFlags(peristentFlags), internal.Logger.Fatalf)
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -65,7 +65,7 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	} else {
 		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
+		internal.CheckError(err, internal.Logger.Fatalf)
 
 		viper.AddConfigPath(home)
 		viper.SetConfigType("yaml")

@@ -21,6 +21,7 @@ import (
 var ninetyDayOffset time.Duration
 
 func setupSUT(t *testing.T, olderthen, createdAgo *time.Duration, dryrun, onlyUnused, showTags bool) (*SecGrp, *mocks.MockEc2client, *mocks.MockCloudTrail) {
+	internal.InitLogger()
 	var err error
 	ninetyDayOffset, err = str2duration.ParseDuration("90d")
 	require.NoError(t, err)

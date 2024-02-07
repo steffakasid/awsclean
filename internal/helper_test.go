@@ -6,6 +6,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func init() {
+	InitLogger()
+}
+
 func TestContains(t *testing.T) {
 	t.Run("True", func(t *testing.T) {
 		arr := []string{"a", "b"}
