@@ -43,7 +43,10 @@ Examples:
 
 func init() {
 	rootCmd.AddCommand(ebsCmd)
+
 	ebsFlags := ebsCmd.Flags()
+
 	ebsFlags.BoolP(showtagsFlag, "s", false, "show tags of ebs volumes")
+
 	internal.CheckError(viper.BindPFlags(ebsFlags), internal.Logger.Fatalf)
 }

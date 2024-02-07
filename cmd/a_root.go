@@ -46,7 +46,10 @@ func Execute(version string) {
 }
 
 func init() {
-	cobra.OnInitialize(internal.InitLogger, initConfig)
+
+	internal.InitLogger()
+
+	cobra.OnInitialize(initConfig)
 
 	peristentFlags := rootCmd.PersistentFlags()
 
