@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/google/uuid"
@@ -18,23 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/xhit/go-str2duration/v2"
 )
-
-func TestNewInstance(t *testing.T) {
-	confFunc := func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (cfg aws.Config, err error) {
-		return aws.Config{}, nil
-	}
-	ec2InitFunc := func(cfg aws.Config, optFns ...func(*ec2.Options)) *ec2.Client {
-		return &ec2.Client{}
-	}
-	cloudtrailInitFunc := func(cfg aws.Config, optFns ...func(*cloudtrail.Options)) *cloudtrail.Client {
-		return &cloudtrail.Client{}
-	}
-	awsClient := internal.NewAWSClient(confFunc, ec2InitFunc, cloudtrailInitFunc)
-
-	amiclean := NewInstance(awsClient, 1, "1234", false, false, []string{})
-
-	assert.NotNil(t, amiclean)
-}
 
 func initAMIClean(ec2ClientMock *mocks.MockEc2client, cloudTrailMock *mocks.MockCloudTrail) *AmiClean {
 	internal.InitLogger()
@@ -95,6 +76,9 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		ec2ClientMock := &mocks.MockEc2client{}
 		cloudTrailMock := &mocks.MockCloudTrail{}
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
+
+		mockDescribeInstances(1, ec2ClientMock)
+
 		input := &ec2.DescribeImagesInput{Owners: []string{"self"}}
 		response := &ec2.DescribeImagesOutput{
 			Images: []types.Image{
@@ -122,6 +106,9 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		ec2ClientMock := &mocks.MockEc2client{}
 		cloudTrailMock := &mocks.MockCloudTrail{}
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
+
+		mockDescribeInstances(2, ec2ClientMock, 2)
+
 		input := &ec2.DescribeImagesInput{Owners: []string{"self", "1234568"}}
 		response := &ec2.DescribeImagesOutput{
 			Images: []types.Image{
@@ -151,6 +138,9 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		cloudTrailMock := &mocks.MockCloudTrail{}
 		input := &ec2.DescribeImagesInput{Owners: []string{"self", "123456"}}
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
+
+		mockDescribeInstances(2, ec2ClientMock, 2)
+
 		response := &ec2.DescribeImagesOutput{
 			Images: []types.Image{
 				{
@@ -180,6 +170,9 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		ec2ClientMock := &mocks.MockEc2client{}
 		cloudTrailMock := &mocks.MockCloudTrail{}
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
+
+		mockDescribeInstances(2, ec2ClientMock, 2)
+
 		input := &ec2.DescribeImagesInput{Owners: []string{"self", "123456"}}
 		sixdays, err := str2duration.ParseDuration("6d")
 		require.NoError(t, err)
@@ -217,6 +210,9 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		ec2ClientMock := &mocks.MockEc2client{}
 		cloudTrailMock := &mocks.MockCloudTrail{}
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
+
+		mockDescribeInstances(2, ec2ClientMock, 2)
+
 		input := &ec2.DescribeImagesInput{Owners: []string{"self", "123456"}}
 		response := &ec2.DescribeImagesOutput{
 			Images: []types.Image{
@@ -252,6 +248,9 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		ec2ClientMock := &mocks.MockEc2client{}
 		cloudTrailMock := &mocks.MockCloudTrail{}
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
+
+		mockDescribeInstances(2, ec2ClientMock, 2)
+
 		input := &ec2.DescribeImagesInput{Owners: []string{"self", "123456"}}
 		response := &ec2.DescribeImagesOutput{
 			Images: []types.Image{
@@ -292,6 +291,9 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		ec2ClientMock := &mocks.MockEc2client{}
 		cloudTrailMock := &mocks.MockCloudTrail{}
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
+
+		mockDescribeInstances(2, ec2ClientMock, 2)
+
 		input := &ec2.DescribeImagesInput{Owners: []string{"self", "123456"}}
 		sixdays, err := str2duration.ParseDuration("6d")
 		require.NoError(t, err)

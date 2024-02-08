@@ -43,6 +43,7 @@ func (a *AmiClean) GetUsedAMIs() {
 }
 
 func (a AmiClean) DeleteOlderUnusedAMIs() error {
+	a.GetUsedAMIs()
 
 	images, err := a.awsClient.DescribeImages(a.awsaccount)
 

@@ -2,7 +2,16 @@ package internal
 
 import (
 	"regexp"
+	"time"
+
+	"github.com/xhit/go-str2duration/v2"
 )
+
+func ParseDuration(str string) time.Duration {
+	duration, err := str2duration.ParseDuration(str)
+	CheckError(err, Logger.Fatalf)
+	return duration
+}
 
 func Contains(arr []string, elem string) bool {
 	for _, itm := range arr {

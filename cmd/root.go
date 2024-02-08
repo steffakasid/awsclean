@@ -51,6 +51,14 @@ func init() {
 
 	cobra.OnInitialize(initConfig)
 
+	bindPersistentFlags()
+	amiBindFlags()
+	ebsBindFlags()
+	secGrpBindFlags()
+
+}
+
+func bindPersistentFlags() {
 	peristentFlags := rootCmd.PersistentFlags()
 
 	peristentFlags.StringVar(&cfgFile, "config", "", "config file (default is $HOME/.amiclean.yaml)")

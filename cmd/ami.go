@@ -4,14 +4,10 @@ Copyright © 2022 steffakasid
 package cmd
 
 import (
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
-	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/steffakasid/awsclean/internal"
 	"github.com/steffakasid/awsclean/internal/amiclean"
-	"github.com/xhit/go-str2duration/v2"
 )
 
 const (
@@ -34,18 +30,18 @@ Examples:
   awsclean ami --dry-run            do not delete anything just show what you would do
   awsclean ami --older-then 5w	    delete all images which are older then 5w and are unused`,
 	Run: func(cmd *cobra.Command, args []string) {
-		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthenFlag))
-		internal.CheckError(err, internal.Logger.Fatalf)
-		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig, cloudtrail.NewFromConfig)
+		olderthenDuration := internal.ParseDuration(viper.GetString(olderthenFlag))
+
+		awsClient := internal.NewAWSClient()
 
 		amiclean := amiclean.NewInstance(awsClient, olderthenDuration, viper.GetString(accountFlag), viper.GetBool(dryrunFlag), viper.GetBool(launchTplFlag), viper.GetStringSlice(ignoreFlag))
-		amiclean.GetUsedAMIs()
-		err = amiclean.DeleteOlderUnusedAMIs()
+
+		err := amiclean.DeleteOlderUnusedAMIs()
 		internal.CheckError(err, internal.Logger.Fatalf)
 	},
 }
 
-func init() {
+func amiBindFlags() {
 	rootCmd.AddCommand(amiCmd)
 
 	amiFlags := amiCmd.Flags()

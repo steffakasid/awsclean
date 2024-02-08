@@ -46,19 +46,16 @@ func NewFromInterface(ec2 Ec2client, cloudtrail CloudTrail) *AWS {
 	}
 }
 
-func NewAWSClient(
-	conf func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (cfg aws.Config, err error),
-	ec2InitFunc func(cfg aws.Config, optFns ...func(*ec2.Options)) *ec2.Client,
-	cloudtrailInitFunc func(cfg aws.Config, optFns ...func(*cloudtrail.Options)) *cloudtrail.Client) *AWS {
+func NewAWSClient() *AWS {
 
 	InitLogger()
 	aws := &AWS{}
 
-	cfg, err := conf(context.TODO())
+	cfg, err := config.LoadDefaultConfig(context.TODO())
 	CheckError(err, Logger.Fatalf)
 
-	aws.ec2 = ec2InitFunc(cfg)
-	aws.cloudtrail = cloudtrailInitFunc(cfg)
+	aws.ec2 = ec2.NewFromConfig(cfg)
+	aws.cloudtrail = cloudtrail.NewFromConfig(cfg)
 	return aws
 }
 

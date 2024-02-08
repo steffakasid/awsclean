@@ -5,12 +5,8 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
-	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/steffakasid/awsclean/internal"
@@ -52,20 +48,8 @@ Examples:
   awsclean secgrp list --dry-run        --dry-run has not effect here it will just list the security groups
   awsclean secgrp list --show-tags      print out the SecurityGroups with their tags`,
 	Run: func(cmd *cobra.Command, args []string) {
-		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthenFlag))
-		internal.CheckError(err, internal.Logger.Fatalf)
 
-		createdAgoDuration, err := str2duration.ParseDuration(viper.GetString(createdAgoFlag))
-		internal.CheckError(err, internal.Logger.Fatalf)
-
-		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig, cloudtrail.NewFromConfig)
-		secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, &createdAgoDuration, viper.GetBool(dryrunFlag), viper.GetBool(onlyUnusedFlag), viper.GetBool(showtagsFlag))
-
-		startDatetime, err := time.Parse(time.RFC3339, viper.GetString(startTimeFlag))
-		internal.CheckError(err, internal.Logger.Fatalf)
-
-		endDatetime, err := time.Parse(time.RFC3339, viper.GetString(endTimeFlag))
-		internal.CheckError(err, internal.Logger.Fatalf)
+		secgrp, startDatetime, endDatetime := setup()
 
 		secGrps, err := secgrp.GetSecurityGroups(startDatetime, endDatetime)
 		internal.CheckError(err, internal.Logger.Fatalf)
@@ -82,29 +66,15 @@ var secGrpDeleteCmd = &cobra.Command{
 	Short: "Delte older securityGrp from connected AWS account",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println("Nothing to see here until now")
-		olderthenDuration, err := str2duration.ParseDuration(viper.GetString(olderthenFlag))
-		internal.CheckError(err, internal.Logger.Fatalf)
 
-		createdAgoDuration, err := str2duration.ParseDuration(viper.GetString(createdAgoFlag))
-		internal.CheckError(err, internal.Logger.Fatalf)
+		secgrp, startDatetime, endDatetime := setup()
 
-		awsClient := internal.NewAWSClient(config.LoadDefaultConfig, ec2.NewFromConfig, cloudtrail.NewFromConfig)
-
-		secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, &createdAgoDuration, viper.GetBool(dryrunFlag), viper.GetBool(onlyUnusedFlag), viper.GetBool(showtagsFlag))
-
-		startDatetime, err := time.Parse(time.RFC3339, viper.GetString(startTimeFlag))
-		internal.CheckError(err, internal.Logger.Fatalf)
-
-		endDatetime, err := time.Parse(time.RFC3339, viper.GetString(endTimeFlag))
-		internal.CheckError(err, internal.Logger.Fatalf)
-
-		err = secgrp.DeleteSecurityGroups(startDatetime, endDatetime)
+		err := secgrp.DeleteSecurityGroups(startDatetime, endDatetime)
 		internal.CheckError(err, internal.Logger.Fatalf)
 	},
 }
 
-func init() {
+func secGrpBindFlags() {
 	rootCmd.AddCommand(secgrpCmd)
 
 	ninetyDayOffset, err := str2duration.ParseDuration("90d")
@@ -125,4 +95,20 @@ func init() {
 	// Add Child commands here
 	secgrpCmd.AddCommand(secGrpListCmd)
 	secgrpCmd.AddCommand(secGrpDeleteCmd)
+}
+
+func setup() (*secgrp.SecGrp, time.Time, time.Time) {
+	olderthenDuration := internal.ParseDuration(viper.GetString(olderthenFlag))
+
+	createdAgoDuration := internal.ParseDuration(viper.GetString(createdAgoFlag))
+
+	awsClient := internal.NewAWSClient()
+	secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, &createdAgoDuration, viper.GetBool(dryrunFlag), viper.GetBool(onlyUnusedFlag), viper.GetBool(showtagsFlag))
+
+	startDatetime, err := time.Parse(time.RFC3339, viper.GetString(startTimeFlag))
+	internal.CheckError(err, internal.Logger.Fatalf)
+
+	endDatetime, err := time.Parse(time.RFC3339, viper.GetString(endTimeFlag))
+	internal.CheckError(err, internal.Logger.Fatalf)
+	return secgrp, startDatetime, endDatetime
 }
