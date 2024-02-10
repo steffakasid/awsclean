@@ -4,9 +4,11 @@ Copyright © 2023 steffakasid
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
+	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/steffakasid/awsclean/internal"
@@ -25,23 +27,19 @@ const (
 // secgrpCmd represents the secgrp command
 var secgrpCmd = &cobra.Command{
 	Use:   "secgrp",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Cleanup or list SecurityGroups",
+	Long: `
+	`,
 }
 
 // secGrpListCmd represents the list command
 var secGrpListCmd = &cobra.Command{
 	Use:   "list [options]",
-	Short: "Just lists securityGrps",
-	Long: `Jus list all securityGrp from connected AWS account.
+	Short: "Just lists SecurityGroups",
+	Long: `Just list all SecurityGroups from connected AWS account.
 	
 Also the command tries to get the CreationTime from CloudTrail. CloudTrail only has this information for the past 90 days.
-So older SecurityGroups will have no CreationTime.
+So older SecurityGroups will have no CreationTime / Creator information.
 	
 Examples:
   awsclean secgrp list --older-then 5w  list all SecurityGroup which are older then 5w and are not used
@@ -51,13 +49,16 @@ Examples:
 
 		secgrp, startDatetime, endDatetime := setup()
 
-		secGrps, err := secgrp.GetSecurityGroups(startDatetime, endDatetime)
+		err := secgrp.GetSecurityGroups(startDatetime, endDatetime)
 		internal.CheckError(err, internal.Logger.Fatalf)
 
-		fmt.Println("ID\t\tName\t\tCreationDate")
-		for _, secGrp := range secGrps {
-			fmt.Printf("%s\t\t%s\t\t%s", secGrp.ID, secGrp.Name, secGrp.CreationTime)
+		switch viper.GetString(outputFlag) {
+		case "json", "JSON":
+			secGrpPrintJSON(secgrp.GetAllSecurityGroups())
+		default:
+			secGrpPrintTable(secgrp.GetAllSecurityGroups())
 		}
+
 	},
 }
 
@@ -111,4 +112,18 @@ func setup() (*secgrp.SecGrp, time.Time, time.Time) {
 	endDatetime, err := time.Parse(time.RFC3339, viper.GetString(endTimeFlag))
 	internal.CheckError(err, internal.Logger.Fatalf)
 	return secgrp, startDatetime, endDatetime
+}
+
+func secGrpPrintTable(grps internal.SecurityGroups) {
+	grpsTable := table.New("ID", "Name", "Creation Datetime", "IsUsed")
+	for _, grp := range grps {
+		grpsTable.AddRow(grp.ID, grp.Name, grp.CreationTime.Format(time.RFC3339), grp.IsUsed)
+	}
+	grpsTable.Print()
+}
+
+func secGrpPrintJSON(grps internal.SecurityGroups) {
+	out, err := json.Marshal(grps)
+	internal.CheckError(err, internal.Logger.Fatalf)
+	fmt.Print(string(out))
 }

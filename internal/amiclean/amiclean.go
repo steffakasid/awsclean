@@ -12,7 +12,7 @@ type AmiClean struct {
 	awsaccount     string
 	dryrun         bool
 	useLaunchTpls  bool
-	usedAMIs       []string
+	UsedAMIs       []string
 	ignorePatterns []string
 }
 
@@ -29,16 +29,16 @@ func NewInstance(
 		awsaccount:     awsaccount,
 		dryrun:         dryrun,
 		useLaunchTpls:  useLaunchTpls,
-		usedAMIs:       []string{},
+		UsedAMIs:       []string{},
 		ignorePatterns: ignorePatterns,
 	}
 }
 
 func (a *AmiClean) GetUsedAMIs() {
-	a.usedAMIs = append(a.usedAMIs, a.awsClient.GetUsedAMIsFromEC2()...)
+	a.UsedAMIs = append(a.UsedAMIs, a.awsClient.GetUsedAMIsFromEC2()...)
 
 	if a.useLaunchTpls {
-		a.usedAMIs = append(a.usedAMIs, a.awsClient.GetUsedAMIsFromLaunchTpls()...)
+		a.UsedAMIs = append(a.UsedAMIs, a.awsClient.GetUsedAMIsFromLaunchTpls()...)
 	}
 }
 
@@ -53,7 +53,7 @@ func (a AmiClean) DeleteOlderUnusedAMIs() error {
 	today := time.Now()
 	olderThenDate := today.Add(a.olderthen * -1)
 	for _, image := range images {
-		if !internal.Contains(a.usedAMIs, *image.ImageId) {
+		if !internal.Contains(a.UsedAMIs, *image.ImageId) {
 			ok, err := internal.MatchAny(*image.Name, a.ignorePatterns)
 			if err != nil {
 				return err

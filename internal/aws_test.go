@@ -28,13 +28,11 @@ func setupSUT(t *testing.T) (*AWS, *mocks.MockEc2client, *mocks.MockCloudTrail) 
 
 func TestGetSecurityGroups(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		dryRun := false
 		expectedToken := "expected next token"
 
 		SUT, mock, _ := setupSUT(t)
 
 		expectedOpts := &ec2.DescribeSecurityGroupsInput{
-			DryRun:     aws.Bool(dryRun),
 			MaxResults: aws.Int32(100),
 		}
 		expectedOut := &ec2.DescribeSecurityGroupsOutput{
@@ -48,7 +46,6 @@ func TestGetSecurityGroups(t *testing.T) {
 		}
 		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts).Return(expectedOut, nil).Once()
 		expectedOpts2 := &ec2.DescribeSecurityGroupsInput{
-			DryRun:     aws.Bool(dryRun),
 			MaxResults: aws.Int32(100),
 			NextToken:  aws.String(expectedToken),
 		}
@@ -62,20 +59,18 @@ func TestGetSecurityGroups(t *testing.T) {
 		}
 		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts2).Return(expectedOut2, nil).Once()
 
-		secGrps, err := SUT.GetSecurityGroups(dryRun, SecurityGroups{})
+		secGrps, err := SUT.GetSecurityGroups(SecurityGroups{})
 		require.NoError(t, err)
 		assert.Len(t, secGrps, 2)
 		mock.AssertExpectations(t)
 	})
 
 	t.Run("Error from AWS and we fail", func(t *testing.T) {
-		dryRun := false
 		expectedToken := "expected next token"
 
 		SUT, mock, _ := setupSUT(t)
 
 		expectedOpts := &ec2.DescribeSecurityGroupsInput{
-			DryRun:     aws.Bool(dryRun),
 			MaxResults: aws.Int32(100),
 		}
 		expectedOut := &ec2.DescribeSecurityGroupsOutput{
@@ -89,13 +84,12 @@ func TestGetSecurityGroups(t *testing.T) {
 		}
 		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts).Return(expectedOut, nil).Once()
 		expectedOpts2 := &ec2.DescribeSecurityGroupsInput{
-			DryRun:     aws.Bool(dryRun),
 			MaxResults: aws.Int32(100),
 			NextToken:  aws.String(expectedToken),
 		}
 		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts2).Return(nil, fmt.Errorf("Something went wrong")).Once()
 
-		out, err := SUT.GetSecurityGroups(dryRun, SecurityGroups{})
+		out, err := SUT.GetSecurityGroups(SecurityGroups{})
 		require.Error(t, err)
 		require.EqualError(t, err, "Something went wrong")
 
@@ -109,7 +103,6 @@ func TestGetSecurityGroups(t *testing.T) {
 func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
-		dryRun := false
 		expectedGrpID1 := "1234"
 		expectedGrpName1 := "groupname1"
 		expectedGrpID2 := "5678"
@@ -118,7 +111,6 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		SUT, mock, _ := setupSUT(t)
 
 		expectedOpts1 := &ec2.DescribeNetworkInterfacesInput{
-			DryRun: aws.Bool(dryRun),
 			Filters: []types.Filter{
 				{
 					Values: []string{fmt.Sprintf("Name=%s", expectedGrpID1)}},
@@ -134,19 +126,13 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		}
 		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts1).Return(&expectedOut1, nil).Once()
 		expectedOpts2 := &ec2.DescribeNetworkInterfacesInput{
-			DryRun: aws.Bool(dryRun),
 			Filters: []types.Filter{
 				{
 					Values: []string{fmt.Sprintf("Name=%s", expectedGrpID2)}},
 			},
 		}
 		expectedOut2 := ec2.DescribeNetworkInterfacesOutput{
-			NetworkInterfaces: []types.NetworkInterface{
-				{
-					NetworkInterfaceId: aws.String("asdf-234"),
-					MacAddress:         aws.String("2"),
-				},
-			},
+			NetworkInterfaces: []types.NetworkInterface{},
 		}
 		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts2).Return(&expectedOut2, nil).Once()
 
@@ -160,46 +146,14 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 				ID:   expectedGrpID2,
 			},
 		}
-		notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI(secGrps, dryRun)
-		require.NoError(t, err)
-		// TODO: this is not two unused they are used by networkifacea
-		assert.Len(t, notUsedSecGrps, 2)
-		mock.AssertExpectations(t)
-	})
-
-	t.Run("Yes it's used", func(t *testing.T) {
-		dryRun := false
-		expectedGrpID1 := "1234"
-
-		SUT, mock, _ := setupSUT(t)
-
-		expectedOpts1 := &ec2.DescribeNetworkInterfacesInput{
-			DryRun: aws.Bool(dryRun),
-			Filters: []types.Filter{
-				{
-					Values: []string{fmt.Sprintf("Name=%s", expectedGrpID1)}},
-			},
-		}
-		expectedOut1 := ec2.DescribeNetworkInterfacesOutput{}
-		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts1).Return(&expectedOut1, nil).Once()
-
-		notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI(SecurityGroups{"Group1": SecurityGroup{ID: expectedGrpID1}}, dryRun)
+		usedSecGrps, notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI(secGrps)
 		require.NoError(t, err)
 		assert.Len(t, notUsedSecGrps, 1)
-
-		contained := false
-		for _, secGrp := range notUsedSecGrps {
-			if secGrp.ID == expectedGrpID1 {
-				contained = true
-			}
-		}
-		assert.True(t, contained)
-
+		assert.Len(t, usedSecGrps, 1)
 		mock.AssertExpectations(t)
 	})
 
 	t.Run("Error from AWS", func(t *testing.T) {
-		dryRun := false
 		expectedGrpID1 := "1234"
 		expectedGrpName1 := "groupname1"
 		expectedGrpID2 := "5678"
@@ -208,7 +162,6 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		SUT, mock, _ := setupSUT(t)
 
 		expectedOpts1 := &ec2.DescribeNetworkInterfacesInput{
-			DryRun: aws.Bool(dryRun),
 			Filters: []types.Filter{
 				{
 					Values: []string{fmt.Sprintf("Name=%s", expectedGrpID1)}},
@@ -224,7 +177,6 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		}
 		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts1).Return(&expectedOut1, nil).Once()
 		expectedOpts2 := &ec2.DescribeNetworkInterfacesInput{
-			DryRun: aws.Bool(dryRun),
 			Filters: []types.Filter{
 				{
 					Values: []string{fmt.Sprintf("Name=%s", expectedGrpID2)}},
@@ -236,11 +188,11 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 			"Group1": SecurityGroup{ID: expectedGrpID1, Name: expectedGrpName1},
 			"Group2": SecurityGroup{ID: expectedGrpID2, Name: expectedGrpName2},
 		}
-		notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI(secGrps, dryRun)
+		usedSecGrps, notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI(secGrps)
 		require.Error(t, err)
 		require.EqualError(t, err, "Something went wrong")
-		// TODO: this is not one unused it is used by networkiface
-		assert.Len(t, notUsedSecGrps, 1)
+		assert.Len(t, notUsedSecGrps, 0)
+		assert.Len(t, usedSecGrps, 1)
 
 		mock.AssertExpectations(t)
 	})

@@ -59,7 +59,7 @@ func NewAWSClient() *AWS {
 	return aws
 }
 
-func (a *AWS) GetSecurityGroups(dryRun bool, secGrps SecurityGroups) (SecurityGroups, error) {
+func (a *AWS) GetSecurityGroups(secGrps SecurityGroups) (SecurityGroups, error) {
 	secGrpsRet := SecurityGroups{}
 
 	secGrpNames := []string{}
@@ -68,7 +68,6 @@ func (a *AWS) GetSecurityGroups(dryRun bool, secGrps SecurityGroups) (SecurityGr
 	}
 
 	in := &ec2.DescribeSecurityGroupsInput{
-		DryRun:     aws.Bool(dryRun),
 		MaxResults: aws.Int32(100),
 	}
 
@@ -99,13 +98,13 @@ func (a *AWS) GetSecurityGroups(dryRun bool, secGrps SecurityGroups) (SecurityGr
 	return secGrpsRet, nil
 }
 
-func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups, dryRun bool) (SecurityGroups, error) {
-	notUsedSecGrps := SecurityGroups{}
+func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used SecurityGroups, unused SecurityGroups, err error) {
+	used = SecurityGroups{}
+	unused = SecurityGroups{}
 
 	for _, secGrp := range secGrps {
 
 		in := &ec2.DescribeNetworkInterfacesInput{
-			DryRun: aws.Bool(dryRun),
 			Filters: []ec2Types.Filter{
 				{
 					Values: []string{fmt.Sprintf("Name=%s", secGrp.ID)},
@@ -116,21 +115,21 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups, dryRun bool) (Sec
 		out, err := a.ec2.DescribeNetworkInterfaces(context.TODO(), in)
 		CheckError(err, Logger.Debugf)
 		if nil != err {
-			return notUsedSecGrps, err
+			return used, unused, err
 		}
 		if len(out.NetworkInterfaces) == 0 {
 			Logger.Debug("No ENI attached to group with ID: ", secGrp.ID, secGrp.Name)
-			AddOrUpdate(notUsedSecGrps, secGrp.Name, secGrp.ID, secGrp.Creator, secGrp.CreationTime, false, []string{})
+			AddOrUpdate(unused, secGrp.Name, secGrp.ID, secGrp.Creator, secGrp.CreationTime, false, []string{})
 		}
 		if len(out.NetworkInterfaces) > 0 {
 			attachedIfaces := []string{}
 			for _, iface := range out.NetworkInterfaces {
 				attachedIfaces = append(attachedIfaces, *iface.NetworkInterfaceId)
 			}
-			AddOrUpdate(notUsedSecGrps, secGrp.Name, secGrp.ID, secGrp.Creator, secGrp.CreationTime, true, attachedIfaces)
+			AddOrUpdate(used, secGrp.Name, secGrp.ID, secGrp.Creator, secGrp.CreationTime, true, attachedIfaces)
 		}
 	}
-	return notUsedSecGrps, nil
+	return used, unused, nil
 }
 
 func (a AWS) GetCloudTrailForSecGroups(startTime, endTime time.Time) SecurityGroups {

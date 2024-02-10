@@ -13,6 +13,7 @@ type EBSClean struct {
 	olderthen time.Duration
 	dryrun    bool
 	showTags  bool
+	Volumes   []types.Volume
 }
 
 func NewInstance(awsClient *internal.AWS, olderthen time.Duration, dryrun bool, showTags bool) *EBSClean {
@@ -24,8 +25,13 @@ func NewInstance(awsClient *internal.AWS, olderthen time.Duration, dryrun bool, 
 	}
 }
 
+func (e *EBSClean) GetEBSVolumes() {
+	e.Volumes = e.awsClient.GetAvailableEBSVolumes()
+	// TODO: we could already filter the volumes here and use flags to define the behavior
+}
+
 func (e EBSClean) DeleteUnusedEBSVolumes() {
-	ebsVolumes := e.awsClient.GetAvailableEBSVolumes()
+	e.GetEBSVolumes()
 
 	today := time.Now()
 	olderThenDate := today.Add(e.olderthen * -1)
@@ -34,7 +40,7 @@ func (e EBSClean) DeleteUnusedEBSVolumes() {
 	deleted := 0
 	skipped := 0
 	filtered := 0
-	for _, volume := range ebsVolumes {
+	for _, volume := range e.Volumes {
 		details := fmt.Sprintf("%s creationDate: %v\ttype: %s\tstate: %s\t", *volume.VolumeId, volume.CreateTime, volume.VolumeType, volume.State)
 		if e.showTags {
 			details += "\n\ttags:\t"

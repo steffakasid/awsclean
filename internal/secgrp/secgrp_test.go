@@ -73,7 +73,6 @@ func TestGetSecurityGroups(t *testing.T) {
 		}, nil).Once()
 
 		expectedDescribeSecGrpsOpts := &ec2.DescribeSecurityGroupsInput{
-			DryRun:     aws.Bool(dryrun),
 			MaxResults: aws.Int32(100),
 			GroupNames: []string{expectedSecGrpName},
 		}
@@ -89,7 +88,6 @@ func TestGetSecurityGroups(t *testing.T) {
 		ec2Mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedDescribeSecGrpsOpts).Return(expectedDescribeSecGrpsOut, nil).Once()
 
 		expectedDescribeNetIfaceOpts := &ec2.DescribeNetworkInterfacesInput{
-			DryRun: aws.Bool(dryrun),
 			Filters: []ec2Types.Filter{
 				{
 					Values: []string{fmt.Sprintf("Name=%s", expectedSecGrpID)}},
@@ -98,12 +96,13 @@ func TestGetSecurityGroups(t *testing.T) {
 		expectedDescribeNetIfaceOut := &ec2.DescribeNetworkInterfacesOutput{}
 		ec2Mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedDescribeNetIfaceOpts).Return(expectedDescribeNetIfaceOut, nil).Once()
 
-		secgrps, err := SUT.GetSecurityGroups(expectedStarttime, expectedEndtime)
+		err = SUT.GetSecurityGroups(expectedStarttime, expectedEndtime)
 		require.NoError(t, err)
 		ec2Mock.AssertExpectations(t)
-		assert.Len(t, secgrps, 1)
-		assert.Contains(t, secgrps, expectedSecGrpName)
-		assert.Equal(t, "username", secgrps[expectedSecGrpName].Creator)
+		assert.Len(t, SUT.unusedSecGrps, 1)
+		assert.Len(t, SUT.usedSecGrps, 0)
+		assert.Contains(t, SUT.unusedSecGrps, expectedSecGrpName)
+		assert.Equal(t, "username", SUT.unusedSecGrps[expectedSecGrpName].Creator)
 	})
 	t.Run("Success Get Created 8d Ago", func(t *testing.T) {})
 }
@@ -118,7 +117,7 @@ func TestDeleteSecurityGroups(t *testing.T) {
 		expectedStarttime := expectedEndtime.Add(ninetyDayOffset * -1)
 
 		dryrun := false
-		onlyUnused := false
+		onlyUnused := true
 		showTags := false
 
 		SUT, ec2Mock, cloudTrailMock := setupSUT(t, nil, nil, dryrun, onlyUnused, showTags)
@@ -135,7 +134,6 @@ func TestDeleteSecurityGroups(t *testing.T) {
 		}
 		cloudTrailMock.EXPECT().LookupEvents(context.TODO(), expectedLookupEventsIn).Return(&cloudtrail.LookupEventsOutput{}, nil).Once()
 		expectedDescribeSecGrpsOpts := &ec2.DescribeSecurityGroupsInput{
-			DryRun:     aws.Bool(dryrun),
 			MaxResults: aws.Int32(100),
 		}
 		expectedDescribeSecGrpsOut := &ec2.DescribeSecurityGroupsOutput{
@@ -147,6 +145,15 @@ func TestDeleteSecurityGroups(t *testing.T) {
 			},
 		}
 		ec2Mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedDescribeSecGrpsOpts).Return(expectedDescribeSecGrpsOut, nil).Once()
+
+		expectedDescribeNetIfaceOpts := &ec2.DescribeNetworkInterfacesInput{
+			Filters: []ec2Types.Filter{
+				{
+					Values: []string{fmt.Sprintf("Name=%s", expectedSecGrpID)}},
+			},
+		}
+		expectedDescribeNetIfaceOut := &ec2.DescribeNetworkInterfacesOutput{}
+		ec2Mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedDescribeNetIfaceOpts).Return(expectedDescribeNetIfaceOut, nil).Once()
 
 		expectedDeleteSecGrpOpts := &ec2.DeleteSecurityGroupInput{
 			DryRun:  &dryrun,
@@ -200,18 +207,7 @@ func TestDeleteSecurityGroups(t *testing.T) {
 			},
 		}, nil).Once()
 
-		expectedNetIfaceIn := &ec2.DescribeNetworkInterfacesInput{
-			DryRun: aws.Bool(dryrun),
-			Filters: []ec2Types.Filter{
-				{
-					Values: []string{fmt.Sprintf("Name=%s", expectedSecGrpID)},
-				},
-			},
-		}
-		ec2Mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedNetIfaceIn).Return(&ec2.DescribeNetworkInterfacesOutput{}, nil)
-
 		expectedDescribeSecGrpsOpts := &ec2.DescribeSecurityGroupsInput{
-			DryRun:     aws.Bool(dryrun),
 			MaxResults: aws.Int32(100),
 			GroupNames: []string{expectedSecGrpName},
 		}
@@ -224,6 +220,16 @@ func TestDeleteSecurityGroups(t *testing.T) {
 			},
 		}
 		ec2Mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedDescribeSecGrpsOpts).Return(expectedDescribeSecGrpsOut, nil).Once()
+
+		expectedDescribeNetIfaceOpts := &ec2.DescribeNetworkInterfacesInput{
+			Filters: []ec2Types.Filter{
+				{
+					Values: []string{fmt.Sprintf("Name=%s", expectedSecGrpID)},
+				},
+			},
+		}
+		expectedDescribeNetIfaceOut := &ec2.DescribeNetworkInterfacesOutput{}
+		ec2Mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedDescribeNetIfaceOpts).Return(expectedDescribeNetIfaceOut, nil).Once()
 
 		expectedDeleteSecGrpOpts := &ec2.DeleteSecurityGroupInput{
 			DryRun:  &dryrun,

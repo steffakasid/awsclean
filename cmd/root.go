@@ -17,6 +17,7 @@ const (
 	dryrunFlag    = "dry-run"
 	olderthenFlag = "older-then"
 	debugFlag     = "debug"
+	outputFlag    = "output"
 )
 
 var cfgFile string
@@ -66,6 +67,7 @@ func bindPersistentFlags() {
 	peristentFlags.BoolP(dryrunFlag, "d", false, "If set to true nothing will be deleted. And amiclean will just show what it would do!")
 	peristentFlags.StringP(olderthenFlag, "o", "7d", "Set the duration string (e.g 5d, 1w etc.) how old objeccts must be to be deleted or listed. E.g. if set to 7d, AMIs will be delete which are older then 7 days. For security groups we only get the creation date of the past 90 days.")
 	peristentFlags.StringP(debugFlag, "", "info", "Enable debugging. Possible Values [debug,info,warn,error,fatal]")
+	peristentFlags.StringP(outputFlag, "o", "table", "Define how to output results [table, json] (default: table)")
 
 	internal.CheckError(viper.BindPFlags(peristentFlags), internal.Logger.Fatalf)
 }

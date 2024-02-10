@@ -32,7 +32,7 @@ func TestGetUsedAmis(t *testing.T) {
 
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
 		amiclean.GetUsedAMIs()
-		assert.ElementsMatch(t, expectedAMIIDs, amiclean.usedAMIs)
+		assert.ElementsMatch(t, expectedAMIIDs, amiclean.UsedAMIs)
 	})
 
 	t.Run("With Paging", func(t *testing.T) {
@@ -42,7 +42,7 @@ func TestGetUsedAmis(t *testing.T) {
 
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
 		amiclean.GetUsedAMIs()
-		assert.ElementsMatch(t, expectedAMIIDs, amiclean.usedAMIs)
+		assert.ElementsMatch(t, expectedAMIIDs, amiclean.UsedAMIs)
 	})
 
 	t.Run("Additionally from Launch Templates", func(t *testing.T) {
@@ -55,7 +55,7 @@ func TestGetUsedAmis(t *testing.T) {
 		amiclean.useLaunchTpls = true
 
 		amiclean.GetUsedAMIs()
-		assert.ElementsMatch(t, expectedAMIIDs, amiclean.usedAMIs)
+		assert.ElementsMatch(t, expectedAMIIDs, amiclean.UsedAMIs)
 	})
 
 	t.Run("Error DescribeInstances", func(t *testing.T) {
@@ -66,16 +66,20 @@ func TestGetUsedAmis(t *testing.T) {
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
 
 		amiclean.GetUsedAMIs()
-		assert.Len(t, amiclean.usedAMIs, 3)
+		assert.Len(t, amiclean.UsedAMIs, 3)
 	})
 }
 
+// TODO: needs rework after refactoring
 func TestDeleteOlderUnusedAMIs(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		ec2ClientMock := &mocks.MockEc2client{}
 		cloudTrailMock := &mocks.MockCloudTrail{}
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
+		olderthen, err := str2duration.ParseDuration("7d")
+		assert.NoError(t, err)
+		amiclean.olderthen = olderthen
 
 		mockDescribeInstances(1, ec2ClientMock)
 
@@ -93,11 +97,6 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		derregisterInput := &ec2.DeregisterImageInput{ImageId: aws.String("my-image-12345"), DryRun: aws.Bool(false)}
 		ec2ClientMock.EXPECT().DeregisterImage(context.TODO(), derregisterInput).Return(nil, nil)
 
-		olderthen, err := str2duration.ParseDuration("7d")
-		assert.NoError(t, err)
-		amiclean.olderthen = olderthen
-		amiclean.usedAMIs = []string{}
-
 		err = amiclean.DeleteOlderUnusedAMIs()
 		assert.NoError(t, err)
 	})
@@ -106,6 +105,10 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		ec2ClientMock := &mocks.MockEc2client{}
 		cloudTrailMock := &mocks.MockCloudTrail{}
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
+		olderthen, err := str2duration.ParseDuration("7h")
+		assert.NoError(t, err)
+		amiclean.awsaccount = "1234568"
+		amiclean.olderthen = olderthen
 
 		mockDescribeInstances(2, ec2ClientMock, 2)
 
@@ -123,12 +126,6 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		derregisterInput := &ec2.DeregisterImageInput{ImageId: aws.String("my-image-12345"), DryRun: aws.Bool(false)}
 		ec2ClientMock.EXPECT().DeregisterImage(context.TODO(), derregisterInput).Return(nil, nil)
 
-		olderthen, err := str2duration.ParseDuration("7h")
-		assert.NoError(t, err)
-		amiclean.awsaccount = "1234568"
-		amiclean.olderthen = olderthen
-		amiclean.usedAMIs = []string{}
-
 		err = amiclean.DeleteOlderUnusedAMIs()
 		assert.NoError(t, err)
 	})
@@ -138,6 +135,11 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		cloudTrailMock := &mocks.MockCloudTrail{}
 		input := &ec2.DescribeImagesInput{Owners: []string{"self", "123456"}}
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
+		olderthen, err := str2duration.ParseDuration("7h")
+		assert.NoError(t, err)
+		amiclean.awsaccount = "123456"
+		amiclean.olderthen = olderthen
+		amiclean.dryrun = true
 
 		mockDescribeInstances(2, ec2ClientMock, 2)
 
@@ -154,14 +156,6 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		derregisterInput := &ec2.DeregisterImageInput{ImageId: aws.String("my-image-12345"), DryRun: aws.Bool(true)}
 		ec2ClientMock.EXPECT().DeregisterImage(context.TODO(), derregisterInput).Return(nil, nil)
 
-		olderthen, err := str2duration.ParseDuration("7h")
-		assert.NoError(t, err)
-
-		amiclean.awsaccount = "123456"
-		amiclean.olderthen = olderthen
-		amiclean.usedAMIs = []string{}
-		amiclean.dryrun = true
-
 		err = amiclean.DeleteOlderUnusedAMIs()
 		assert.NoError(t, err)
 	})
@@ -170,6 +164,11 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		ec2ClientMock := &mocks.MockEc2client{}
 		cloudTrailMock := &mocks.MockCloudTrail{}
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
+		olderthen, err := str2duration.ParseDuration("7d")
+		assert.NoError(t, err)
+		amiclean.awsaccount = "123456"
+		amiclean.olderthen = olderthen
+		amiclean.dryrun = true
 
 		mockDescribeInstances(2, ec2ClientMock, 2)
 
@@ -195,13 +194,6 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		derregisterInput := &ec2.DeregisterImageInput{ImageId: aws.String("my-image-12345"), DryRun: aws.Bool(true)}
 		ec2ClientMock.EXPECT().DeregisterImage(context.TODO(), derregisterInput).Return(nil, nil)
 
-		olderthen, err := str2duration.ParseDuration("7d")
-		assert.NoError(t, err)
-		amiclean.awsaccount = "123456"
-		amiclean.olderthen = olderthen
-		amiclean.usedAMIs = []string{}
-		amiclean.dryrun = true
-
 		err = amiclean.DeleteOlderUnusedAMIs()
 		assert.NoError(t, err)
 	})
@@ -210,6 +202,11 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		ec2ClientMock := &mocks.MockEc2client{}
 		cloudTrailMock := &mocks.MockCloudTrail{}
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
+		olderthen, err := str2duration.ParseDuration("7h")
+		assert.NoError(t, err)
+		amiclean.awsaccount = "123456"
+		amiclean.olderthen = olderthen
+		amiclean.dryrun = true
 
 		mockDescribeInstances(2, ec2ClientMock, 2)
 
@@ -229,16 +226,11 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 			},
 		}
 		ec2ClientMock.EXPECT().DescribeImages(context.TODO(), input).Return(response, nil).Once()
-		derregisterInput := &ec2.DeregisterImageInput{ImageId: aws.String("my-image-12345"), DryRun: aws.Bool(true)}
-		ec2ClientMock.EXPECT().DeregisterImage(context.TODO(), derregisterInput).Return(nil, nil)
 
-		olderthen, err := str2duration.ParseDuration("7h")
-		assert.NoError(t, err)
-
-		amiclean.awsaccount = "123456"
-		amiclean.olderthen = olderthen
-		amiclean.usedAMIs = []string{"still-in-use-id"}
-		amiclean.dryrun = true
+		derregisterInput1 := &ec2.DeregisterImageInput{ImageId: aws.String("still-in-use-id"), DryRun: aws.Bool(true)}
+		ec2ClientMock.EXPECT().DeregisterImage(context.TODO(), derregisterInput1).Return(nil, nil)
+		derregisterInput2 := &ec2.DeregisterImageInput{ImageId: aws.String("my-image-12345"), DryRun: aws.Bool(true)}
+		ec2ClientMock.EXPECT().DeregisterImage(context.TODO(), derregisterInput2).Return(nil, nil)
 
 		err = amiclean.DeleteOlderUnusedAMIs()
 		assert.NoError(t, err)
@@ -248,6 +240,12 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		ec2ClientMock := &mocks.MockEc2client{}
 		cloudTrailMock := &mocks.MockCloudTrail{}
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
+		olderthen, err := str2duration.ParseDuration("7h")
+		assert.NoError(t, err)
+		amiclean.awsaccount = "123456"
+		amiclean.olderthen = olderthen
+		amiclean.dryrun = true
+		amiclean.ignorePatterns = []string{"^my-image.*", ".*ed.*"}
 
 		mockDescribeInstances(2, ec2ClientMock, 2)
 
@@ -275,14 +273,6 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		derregisterInput := &ec2.DeregisterImageInput{ImageId: aws.String("to-be-deleted-id"), DryRun: aws.Bool(true)}
 		ec2ClientMock.EXPECT().DeregisterImage(context.TODO(), derregisterInput).Return(nil, nil)
 
-		olderthen, err := str2duration.ParseDuration("7h")
-		assert.NoError(t, err)
-		amiclean.awsaccount = "123456"
-		amiclean.olderthen = olderthen
-		amiclean.usedAMIs = []string{}
-		amiclean.dryrun = true
-		amiclean.ignorePatterns = []string{"^my-image.*", ".*ed.*"}
-
 		err = amiclean.DeleteOlderUnusedAMIs()
 		assert.NoError(t, err)
 	})
@@ -291,6 +281,12 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		ec2ClientMock := &mocks.MockEc2client{}
 		cloudTrailMock := &mocks.MockCloudTrail{}
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
+		olderthen, err := str2duration.ParseDuration("7d")
+		assert.NoError(t, err)
+		amiclean.awsaccount = "123456"
+		amiclean.olderthen = olderthen
+		amiclean.dryrun = false
+		amiclean.ignorePatterns = []string{"^filtered.*"}
 
 		mockDescribeInstances(2, ec2ClientMock, 2)
 
@@ -326,14 +322,6 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		derregisterInput := &ec2.DeregisterImageInput{ImageId: aws.String("to-be-deleted-id"), DryRun: aws.Bool(false)}
 		ec2ClientMock.EXPECT().DeregisterImage(context.TODO(), derregisterInput).Return(nil, nil)
 
-		olderthen, err := str2duration.ParseDuration("7d")
-		assert.NoError(t, err)
-		amiclean.awsaccount = "123456"
-		amiclean.olderthen = olderthen
-		amiclean.usedAMIs = []string{"in-use"}
-		amiclean.dryrun = false
-		amiclean.ignorePatterns = []string{"^filtered.*"}
-
 		err = amiclean.DeleteOlderUnusedAMIs()
 		assert.NoError(t, err)
 	})
@@ -342,16 +330,17 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		ec2ClientMock := &mocks.MockEc2client{}
 		cloudTrailMock := &mocks.MockCloudTrail{}
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
-		input := &ec2.DescribeImagesInput{Owners: []string{"self", "123456"}}
-		ec2ClientMock.EXPECT().DescribeImages(context.TODO(), input).Return(nil, errors.New("Some error")).Once()
-
 		olderthen, err := str2duration.ParseDuration("7h")
 		assert.NoError(t, err)
-
 		amiclean.awsaccount = "123456"
 		amiclean.olderthen = olderthen
-		amiclean.usedAMIs = []string{}
+		amiclean.UsedAMIs = []string{}
 		amiclean.dryrun = true
+
+		mockDescribeInstances(1, ec2ClientMock)
+
+		input := &ec2.DescribeImagesInput{Owners: []string{"self", "123456"}}
+		ec2ClientMock.EXPECT().DescribeImages(context.TODO(), input).Return(nil, errors.New("Some error")).Once()
 
 		err = amiclean.DeleteOlderUnusedAMIs()
 		assert.Error(t, err)
@@ -362,6 +351,14 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		ec2ClientMock := &mocks.MockEc2client{}
 		cloudTrailMock := &mocks.MockCloudTrail{}
 		amiclean := initAMIClean(ec2ClientMock, cloudTrailMock)
+		olderthen, err := str2duration.ParseDuration("7h")
+		assert.NoError(t, err)
+		amiclean.awsaccount = "123456"
+		amiclean.olderthen = olderthen
+		amiclean.dryrun = true
+
+		mockDescribeInstances(2, ec2ClientMock)
+
 		input := &ec2.DescribeImagesInput{Owners: []string{"self", "123456"}}
 		response := &ec2.DescribeImagesOutput{
 			Images: []types.Image{
@@ -375,14 +372,6 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 		ec2ClientMock.EXPECT().DescribeImages(context.TODO(), input).Return(response, nil).Once()
 		derregisterInput := &ec2.DeregisterImageInput{ImageId: aws.String("my-image-12345"), DryRun: aws.Bool(true)}
 		ec2ClientMock.EXPECT().DeregisterImage(context.TODO(), derregisterInput).Return(nil, errors.New("Some Error"))
-
-		olderthen, err := str2duration.ParseDuration("7h")
-		assert.NoError(t, err)
-
-		amiclean.awsaccount = "123456"
-		amiclean.olderthen = olderthen
-		amiclean.usedAMIs = []string{}
-		amiclean.dryrun = true
 
 		err = amiclean.DeleteOlderUnusedAMIs()
 		assert.NoError(t, err)
