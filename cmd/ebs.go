@@ -70,9 +70,9 @@ var ebsListCmd = &cobra.Command{
 
 		switch viper.GetString(outputFlag) {
 		case "json", "JSON":
-			secEBSPrintJSON(ebsclean.Volumes)
+			secEBSPrintJSON(ebsclean.GetAllVolumes())
 		default:
-			secEBSPrintTable(ebsclean.Volumes)
+			secEBSPrintTable(ebsclean.GetAllVolumes())
 		}
 	},
 }
