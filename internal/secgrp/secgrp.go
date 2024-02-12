@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/steffakasid/awsclean/internal"
+	"github.com/xhit/go-str2duration/v2"
 )
 
 type SecGrp struct {
@@ -32,10 +33,17 @@ func NewInstance(awsClient *internal.AWS, olderthen, createdAgo *time.Duration, 
 }
 
 func (sec *SecGrp) GetSecurityGroups(startTime, endTime time.Time) error {
+	ninetyDayOffset, _ := str2duration.ParseDuration("90d")
 
 	secGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(startTime, endTime)
-	// TODO: we might not always get Details from CloudTrail or at least we need multiple describe SecGrp calls
-	secGrps, err := sec.awsClient.GetSecurityGroups(secGrpsFromCCTrail)
+
+	// if startTime is before 90d in past we want to get additional SecurityGroups which are not in CloudTrail
+	filterSecGrps := internal.SecurityGroups{}
+	if startTime.After(time.Now().Add(ninetyDayOffset * -1)) {
+		filterSecGrps = secGrpsFromCCTrail
+	}
+
+	secGrps, err := sec.awsClient.GetSecurityGroups(filterSecGrps)
 	internal.AppendAll(secGrpsFromCCTrail, secGrps)
 
 	if nil != err {
