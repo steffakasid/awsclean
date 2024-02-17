@@ -35,8 +35,8 @@ require (
 	github.com/stretchr/objx v0.5.1 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a // indirect
+	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
@@ -44,10 +44,10 @@ require (
 )
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.24.1
-	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.36.0
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.144.1
-	github.com/aws/smithy-go v1.19.0
+	github.com/aws/aws-sdk-go-v2 v1.25.0
+	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.37.1
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.148.0
+	github.com/aws/smithy-go v1.20.0
 	github.com/google/uuid v1.6.0
 	github.com/rodaine/table v1.1.1
 	github.com/spf13/cobra v1.8.0
