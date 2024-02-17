@@ -124,16 +124,22 @@ func amiBindFlags() {
 	amiCmd.AddCommand(amiListCmd)
 	rootCmd.AddCommand(amiCmd)
 
-	amiDeleteFlags := amiDeleteCmd.Flags()
-	amiDeleteFlags.StringArrayP(ignoreFlag, "i", []string{}, "Set ignore regex patterns. If a ami name matches the pattern it will be exclueded from cleanup.")
-	deleteExtraFlags(amiDeleteFlags, "AMIs")
+	const objType = "AMIs"
+
+	amiDeleteCmdFlags := amiDeleteCmd.Flags()
+	amiDeleteCmdFlags.StringArrayP(ignoreFlag, "i", []string{}, "Set ignore regex patterns. If a ami name matches the pattern it will be exclueded from cleanup.")
+	deleteOnlyFlags(amiDeleteCmdFlags, objType)
+
+	amiListCmdFlags := amiListCmd.Flags()
+	listOnlyFlags(amiListCmdFlags, objType)
 
 	amiCmdPersistentFlags := amiCmd.PersistentFlags()
 	amiCmdPersistentFlags.BoolP(launchTplFlag, "l", false, "Additionally scan launch templates for used AMIs.")
 	amiCmdPersistentFlags.StringP(accountFlag, "a", "", "Set AWS account number to cleanup AMIs. Used to set owner information when selecting AMIs. If not set only 'self' is used.")
 
 	internal.CheckError(viper.BindPFlags(amiCmdPersistentFlags), internal.Logger.Fatalf)
-	internal.CheckError(viper.BindPFlags(amiDeleteFlags), internal.Logger.Fatalf)
+	internal.CheckError(viper.BindPFlags(amiDeleteCmdFlags), internal.Logger.Fatalf)
+	internal.CheckError(viper.BindPFlags(amiListCmdFlags), internal.Logger.Fatalf)
 }
 
 func amiPrintTable(amis []ec2Types.Image) {

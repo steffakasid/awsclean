@@ -126,11 +126,14 @@ func secGrpBindFlags() {
 	ninetyDayOffset, err := str2duration.ParseDuration("90d")
 	internal.CheckError(err, internal.Logger.Fatalf)
 
+	const objType = "SecurityGroups"
+
 	secGrpListCmdFlags := secGrpListCmd.Flags()
 	secGrpListCmdFlags.BoolP(onlyUnusedFlag, "u", false, "defines if only-unused SecurityGroups are listed or all [Default: false]")
+	listOnlyFlags(secGrpListCmdFlags, objType)
 
 	secGrpDeleteCmdFlags := secGrpDeleteCmd.Flags()
-	deleteExtraFlags(secGrpDeleteCmdFlags, "SecurityGroups")
+	deleteOnlyFlags(secGrpDeleteCmdFlags, objType)
 
 	secGrpCmdPersistentFlags := secGrpCmd.PersistentFlags()
 	ninetyDaysAgo := time.Now().Add(ninetyDayOffset * -1)

@@ -115,12 +115,13 @@ func ebsBindFlags() {
 	ebsCmd.AddCommand(ebsListCmd)
 	rootCmd.AddCommand(ebsCmd)
 
+	const objType = "EBS volumes"
+
 	ebsDeleteCmdFlags := ebsDeleteCmd.Flags()
-	deleteExtraFlags(ebsDeleteCmdFlags, "EBS Volumes")
+	deleteOnlyFlags(ebsDeleteCmdFlags, objType)
 
 	ebsListCmdFlags := ebsListCmd.Flags()
-	// TODO: maybe make this perststent??
-	ebsListCmdFlags.BoolP(showtagsFlag, "s", false, "show tags of ebs volumes")
+	listOnlyFlags(ebsListCmdFlags, objType)
 
 	internal.CheckError(viper.BindPFlags(ebsListCmdFlags), internal.Logger.Fatalf)
 	internal.CheckError(viper.BindPFlags(ebsDeleteCmdFlags), internal.Logger.Fatalf)

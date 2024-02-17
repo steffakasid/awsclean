@@ -75,9 +75,13 @@ func bindPersistentFlags() {
 	internal.CheckError(viper.BindPFlags(peristentFlags), internal.Logger.Fatalf)
 }
 
-func deleteExtraFlags(flagset *pflag.FlagSet, objType string) {
+func deleteOnlyFlags(flagset *pflag.FlagSet, objType string) {
 	flagset.BoolP(dryrunFlag, "d", false, "If set to true nothing will be deleted. And amiclean will just show what it would do!")
 	flagset.StringP(olderthenFlag, "o", "7d", fmt.Sprintf("Set the duration string (e.g 5d, 1w etc.) how old %[1]s must be to be deleted. E.g. if set to 7d, %[1]s will be delete which are older then 7 days.", objType))
+}
+
+func listOnlyFlags(flagset *pflag.FlagSet, objType string) {
+	flagset.BoolP(showtagsFlag, "s", false, fmt.Sprintf("show tags of %s", objType))
 }
 
 // initConfig reads in config file and ENV variables if set.
