@@ -20,7 +20,7 @@ import (
 
 var ninetyDayOffset time.Duration
 
-func setupSUT(t *testing.T, olderthen, createdAgo *time.Duration, dryrun, onlyUnused, showTags bool) (*SecGrp, *mocks.MockEc2client, *mocks.MockCloudTrail) {
+func setupSUT(t *testing.T, olderthen *time.Duration, dryrun, onlyUnused bool) (*SecGrp, *mocks.MockEc2client, *mocks.MockCloudTrail) {
 	internal.InitLogger()
 	var err error
 	ninetyDayOffset, err = str2duration.ParseDuration("90d")
@@ -29,7 +29,7 @@ func setupSUT(t *testing.T, olderthen, createdAgo *time.Duration, dryrun, onlyUn
 	ec2ClientMock := mocks.NewMockEc2client(t)
 	cloudTrailMock := mocks.NewMockCloudTrail(t)
 	awsClient := internal.NewFromInterface(ec2ClientMock, cloudTrailMock)
-	SUT := NewInstance(awsClient, olderthen, createdAgo, dryrun, onlyUnused, showTags)
+	SUT := NewInstance(awsClient, olderthen, dryrun, onlyUnused)
 	return SUT, ec2ClientMock, cloudTrailMock
 }
 
@@ -43,9 +43,8 @@ func TestGetSecurityGroups(t *testing.T) {
 
 		dryrun := false
 		unused := true
-		showTags := false
 
-		SUT, ec2Mock, cloudTrailMock := setupSUT(t, nil, nil, dryrun, unused, showTags)
+		SUT, ec2Mock, cloudTrailMock := setupSUT(t, nil, dryrun, unused)
 
 		expectedLookupEventsIn := &cloudtrail.LookupEventsInput{
 			StartTime: &expectedStarttime,
@@ -114,9 +113,8 @@ func TestGetSecurityGroups(t *testing.T) {
 
 		dryrun := false
 		unused := true
-		showTags := false
 
-		SUT, ec2Mock, cloudTrailMock := setupSUT(t, nil, nil, dryrun, unused, showTags)
+		SUT, ec2Mock, cloudTrailMock := setupSUT(t, nil, dryrun, unused)
 
 		expectedLookupEventsIn := &cloudtrail.LookupEventsInput{
 			StartTime: &expectedStarttime,
@@ -189,9 +187,8 @@ func TestDeleteSecurityGroups(t *testing.T) {
 
 		dryrun := false
 		onlyUnused := true
-		showTags := false
 
-		SUT, ec2Mock, cloudTrailMock := setupSUT(t, nil, nil, dryrun, onlyUnused, showTags)
+		SUT, ec2Mock, cloudTrailMock := setupSUT(t, nil, dryrun, onlyUnused)
 
 		expectedLookupEventsIn := &cloudtrail.LookupEventsInput{
 			StartTime: &expectedStarttime,
@@ -247,11 +244,10 @@ func TestDeleteSecurityGroups(t *testing.T) {
 
 		dryrun := false
 		onlyUnused := true
-		showTags := false
 		olderthen, err := str2duration.ParseDuration("8d")
 		require.NoError(t, err)
 
-		SUT, ec2Mock, cloudTrailMock := setupSUT(t, &olderthen, nil, dryrun, onlyUnused, showTags)
+		SUT, ec2Mock, cloudTrailMock := setupSUT(t, &olderthen, dryrun, onlyUnused)
 
 		expectedLookupEventsIn := &cloudtrail.LookupEventsInput{
 			StartTime: &expectedStarttime,

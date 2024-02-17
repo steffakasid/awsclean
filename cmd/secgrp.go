@@ -24,27 +24,65 @@ const (
 	endTimeFlag    = "end-time"
 )
 
-// secgrpCmd represents the secgrp command
-var secgrpCmd = &cobra.Command{
-	Use:   "secgrp",
-	Short: "Cleanup or list SecurityGroups",
-	Long: `
-	`,
+const (
+	secGrpCmdName       = "securitzGroups"
+	secGrpListCmdName   = "list"
+	secGrpDeleteCmdName = "delete"
+)
+
+var (
+	secGrpCmdAliases       = []string{"secgrp"}
+	secGrpListCmdAliases   = []string{"ls"}
+	secGrpDeleteCmdAliases = []string{"del"}
+)
+
+var (
+	secGrpDeleteCmdExamples = fmt.Sprintf(`
+  %[1]s %[2]s %[4]s
+  %[1]s %[3]s %[4]s
+  %[1]s %[3]s %[5]s
+`, binaryname,
+		secGrpCmdName,
+		secGrpCmdAliases[0],
+		secGrpDeleteCmdName,
+		secGrpDeleteCmdAliases[0])
+	secGrpListCmdExamples = fmt.Sprintf(`
+		%[1]s %[2]s %[4]s
+		%[1]s %[3]s %[4]s
+		%[1]s %[3]s %[5]s
+	  `, binaryname,
+		secGrpCmdName,
+		secGrpCmdAliases[0],
+		secGrpListCmdName,
+		secGrpListCmdAliases[0])
+)
+
+// secGrpCmd represents the secgrp command
+var secGrpCmd = &cobra.Command{
+	Use:     secGrpCmdName,
+	Aliases: secGrpCmdAliases,
+	Short:   "Cleanup or list SecurityGroups",
+	Long: fmt.Sprintf(`
+
+Examples:
+%s%s`,
+		secGrpDeleteCmdExamples,
+		secGrpListCmdExamples),
 }
 
 // secGrpListCmd represents the list command
 var secGrpListCmd = &cobra.Command{
-	Use:   "list [options]",
-	Short: "Just lists SecurityGroups",
-	Long: `Just list all SecurityGroups from connected AWS account.
+	Use:     secGrpListCmdName,
+	Aliases: secGrpListCmdAliases,
+	Short:   "Just lists SecurityGroups",
+	Long: fmt.Sprintf(`Just list all SecurityGroups from connected AWS account.
 	
 Also the command tries to get the CreationTime from CloudTrail. CloudTrail only has this information for the past 90 days.
 So older SecurityGroups will have no CreationTime / Creator information.
 	
 Examples:
-  awsclean secgrp list --older-then 5w  list all SecurityGroup which are older then 5w and are not used
-  awsclean secgrp list --dry-run        --dry-run has not effect here it will just list the security groups
-  awsclean secgrp list --show-tags      print out the SecurityGroups with their tags`,
+%s`,
+		secGrpListCmdExamples),
 	Run: func(cmd *cobra.Command, args []string) {
 
 		secgrp, startDatetime, endDatetime := setup()
@@ -63,9 +101,16 @@ Examples:
 }
 
 var secGrpDeleteCmd = &cobra.Command{
-	Use:   "delete [options]",
-	Short: "Delte older securityGrp from connected AWS account",
-	Long:  ``,
+	Use:     secGrpDeleteCmdName,
+	Aliases: secGrpDeleteCmdAliases,
+	Short:   "Delte older securityGrp from connected AWS account",
+	Long: fmt.Sprintf(`Delte older securityGrp from connected AWS account
+
+For security groups we only get the creation date of the past 90 days. So if older then date is specified less then 90d all SecurityGroups will be deleted which are older then this duration or do not have a CreationDate set as we couldn't get it from CloudTrail (in fact that means they are older then 90d).
+
+Examples:
+%s`,
+		secGrpDeleteCmdExamples),
 	Run: func(cmd *cobra.Command, args []string) {
 
 		secgrp, startDatetime, endDatetime := setup()
@@ -76,35 +121,35 @@ var secGrpDeleteCmd = &cobra.Command{
 }
 
 func secGrpBindFlags() {
-	rootCmd.AddCommand(secgrpCmd)
+	rootCmd.AddCommand(secGrpCmd)
 
 	ninetyDayOffset, err := str2duration.ParseDuration("90d")
 	internal.CheckError(err, internal.Logger.Fatalf)
 
-	// Implement flags here
-	secGrpListFlags := secGrpListCmd.Flags()
-	secGrpListFlags.BoolP(onlyUnusedFlag, "u", false, "defines if only-unused SecurityGroups are listed or all [Default: false]")
-	secGrpListFlags.StringP(createdAgoFlag, "c", "", "only list security groups which were created x-days ago. We can only reach back 90 days (e.g. 1m)")
-	internal.CheckError(viper.BindPFlags(secGrpListFlags), internal.Logger.Fatalf)
+	secGrpListCmdFlags := secGrpListCmd.Flags()
+	secGrpListCmdFlags.BoolP(onlyUnusedFlag, "u", false, "defines if only-unused SecurityGroups are listed or all [Default: false]")
 
-	secGrpPersistentFlags := secgrpCmd.PersistentFlags()
+	secGrpDeleteCmdFlags := secGrpDeleteCmd.Flags()
+	deleteExtraFlags(secGrpDeleteCmdFlags, "SecurityGroups")
+
+	secGrpCmdPersistentFlags := secGrpCmd.PersistentFlags()
 	ninetyDaysAgo := time.Now().Add(ninetyDayOffset * -1)
-	secGrpPersistentFlags.StringP(startTimeFlag, "s", ninetyDaysAgo.Format(time.RFC3339), fmt.Sprintf("Set start datetime using format: %s [default: %s]", time.RFC3339, ninetyDaysAgo.Format(time.RFC3339)))
-	secGrpPersistentFlags.StringP(endTimeFlag, "e", time.Now().Format(time.RFC3339), fmt.Sprintf("Set end datetime using format: %s [default: %s]", time.RFC3339, time.Now().Format(time.RFC3339)))
-	internal.CheckError(viper.BindPFlags(secGrpPersistentFlags), internal.Logger.Fatalf)
+	secGrpCmdPersistentFlags.StringP(startTimeFlag, "s", ninetyDaysAgo.Format(time.RFC3339), fmt.Sprintf("Set start datetime using format: %s [default: %s]", time.RFC3339, ninetyDaysAgo.Format(time.RFC3339)))
+	secGrpCmdPersistentFlags.StringP(endTimeFlag, "e", time.Now().Format(time.RFC3339), fmt.Sprintf("Set end datetime using format: %s [default: %s]", time.RFC3339, time.Now().Format(time.RFC3339)))
 
-	// Add Child commands here
-	secgrpCmd.AddCommand(secGrpListCmd)
-	secgrpCmd.AddCommand(secGrpDeleteCmd)
+	secGrpCmd.AddCommand(secGrpListCmd)
+	secGrpCmd.AddCommand(secGrpDeleteCmd)
+
+	internal.CheckError(viper.BindPFlags(secGrpCmdPersistentFlags), internal.Logger.Fatalf)
+	internal.CheckError(viper.BindPFlags(secGrpDeleteCmdFlags), internal.Logger.Fatalf)
+	internal.CheckError(viper.BindPFlags(secGrpListCmdFlags), internal.Logger.Fatalf)
 }
 
 func setup() (*secgrp.SecGrp, time.Time, time.Time) {
 	olderthenDuration := internal.ParseDuration(viper.GetString(olderthenFlag))
 
-	createdAgoDuration := internal.ParseDuration(viper.GetString(createdAgoFlag))
-
 	awsClient := internal.NewAWSClient()
-	secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, &createdAgoDuration, viper.GetBool(dryrunFlag), viper.GetBool(onlyUnusedFlag), viper.GetBool(showtagsFlag))
+	secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, viper.GetBool(dryrunFlag), viper.GetBool(onlyUnusedFlag))
 
 	startDatetime, err := time.Parse(time.RFC3339, viper.GetString(startTimeFlag))
 	internal.CheckError(err, internal.Logger.Fatalf)
@@ -117,7 +162,8 @@ func setup() (*secgrp.SecGrp, time.Time, time.Time) {
 func secGrpPrintTable(grps internal.SecurityGroups) {
 	grpsTable := table.New("ID", "Name", "Creation Datetime", "IsUsed")
 	for _, grp := range grps {
-		grpsTable.AddRow(grp.ID, grp.Name, grp.CreationTime.Format(time.RFC3339), grp.IsUsed)
+		// TODO: conditionally add tags here.
+		grpsTable.AddRow(grp.SecurityGroup.GroupId, grp.SecurityGroup.GroupName, grp.CreationTime.Format(time.RFC3339), grp.IsUsed)
 	}
 	grpsTable.Print()
 }

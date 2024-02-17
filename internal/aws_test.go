@@ -138,12 +138,16 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 
 		secGrps := SecurityGroups{
 			"Group1": SecurityGroup{
-				Name: expectedGrpName1,
-				ID:   expectedGrpID1,
+				SecurityGroup: &types.SecurityGroup{
+					GroupName: &expectedGrpName1,
+					GroupId:   &expectedGrpID1,
+				},
 			},
 			"Group2": SecurityGroup{
-				Name: expectedGrpName2,
-				ID:   expectedGrpID2,
+				SecurityGroup: &types.SecurityGroup{
+					GroupName: &expectedGrpName2,
+					GroupId:   &expectedGrpID2,
+				},
 			},
 		}
 		usedSecGrps, notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI(secGrps)
@@ -185,8 +189,18 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts2).Return(nil, fmt.Errorf("Something went wrong")).Once()
 
 		secGrps := SecurityGroups{
-			"Group1": SecurityGroup{ID: expectedGrpID1, Name: expectedGrpName1},
-			"Group2": SecurityGroup{ID: expectedGrpID2, Name: expectedGrpName2},
+			"Group1": SecurityGroup{
+				SecurityGroup: &types.SecurityGroup{
+					GroupId:   &expectedGrpID1,
+					GroupName: &expectedGrpName1,
+				},
+			},
+			"Group2": SecurityGroup{
+				SecurityGroup: &types.SecurityGroup{
+					GroupId:   &expectedGrpID2,
+					GroupName: &expectedGrpName2,
+				},
+			},
 		}
 		usedSecGrps, notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI(secGrps)
 		require.Error(t, err)
@@ -254,7 +268,11 @@ func TestDeleteSecurityGroup(t *testing.T) {
 		}
 		mock.EXPECT().DeleteSecurityGroup(context.TODO(), expectedOpts).Return(nil, nil).Once()
 
-		err := SUT.DeleteSecurityGroup(SecurityGroup{ID: expectedSecGrpID}, dryRun)
+		err := SUT.DeleteSecurityGroup(SecurityGroup{
+			SecurityGroup: &types.SecurityGroup{
+				GroupId: &expectedSecGrpID,
+			},
+		}, dryRun)
 		require.NoError(t, err)
 	})
 
@@ -270,7 +288,7 @@ func TestDeleteSecurityGroup(t *testing.T) {
 
 		mock.EXPECT().DeleteSecurityGroup(context.TODO(), expectedOpts).Return(nil, fmt.Errorf("Something went wrong")).Once()
 
-		err := SUT.DeleteSecurityGroup(SecurityGroup{ID: expectedSecGrpID}, dryRun)
+		err := SUT.DeleteSecurityGroup(SecurityGroup{SecurityGroup: &types.SecurityGroup{GroupId: &expectedSecGrpID}}, dryRun)
 		require.Error(t, err)
 		require.EqualError(t, err, "Something went wrong")
 

@@ -12,17 +12,15 @@ type EBSClean struct {
 	awsClient     *internal.AWS
 	olderthen     time.Duration
 	dryrun        bool
-	showTags      bool
 	usedVolumes   []types.Volume
 	unusedVolumes []types.Volume
 }
 
-func NewInstance(awsClient *internal.AWS, olderthen time.Duration, dryrun bool, showTags bool) *EBSClean {
+func NewInstance(awsClient *internal.AWS, olderthen time.Duration, dryrun bool) *EBSClean {
 	return &EBSClean{
 		awsClient: awsClient,
 		olderthen: olderthen,
 		dryrun:    dryrun,
-		showTags:  showTags,
 	}
 }
 

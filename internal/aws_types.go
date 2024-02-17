@@ -3,11 +3,12 @@ package internal
 import (
 	"fmt"
 	"time"
+
+	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
 
 type SecurityGroup struct {
-	Name                string
-	ID                  string
+	*ec2Types.SecurityGroup
 	CreationTime        *time.Time
 	Creator             string
 	IsUsed              bool
@@ -16,15 +17,20 @@ type SecurityGroup struct {
 
 type SecurityGroups = map[string]SecurityGroup
 
-func AddOrUpdate(grps SecurityGroups, name, ID, creator string, creationTime *time.Time, isUsed bool, netIfaces []string) {
+func AddOrUpdate(grps SecurityGroups, grpDetail *ec2Types.SecurityGroup, creator string, creationTime *time.Time, isUsed bool, netIfaces []string) {
 
-	if grp, isMapContainsKey := grps[name]; isMapContainsKey {
+	if grp, isMapContainsKey := grps[*grpDetail.GroupName]; isMapContainsKey {
 
-		if name != "" {
-			grp.Name = name
-		}
-		if ID != "" {
-			grp.ID = ID
+		if grp.SecurityGroup == nil {
+			grp.SecurityGroup = grpDetail
+		} else {
+			// TODO: maybe we need better merging of the full grp.SecurityGroup object
+			if *grp.SecurityGroup.GroupName != "" {
+				grp.SecurityGroup.GroupName = grp.GroupName
+			}
+			if *grp.SecurityGroup.GroupId != "" {
+				grp.SecurityGroup.GroupId = grp.GroupId
+			}
 		}
 		if creator != "" {
 			grp.Creator = creator
@@ -34,11 +40,11 @@ func AddOrUpdate(grps SecurityGroups, name, ID, creator string, creationTime *ti
 		}
 		grp.IsUsed = isUsed
 		grp.AttachedToNetIfaces = netIfaces
-		grps[name] = grp
+		grps[*grpDetail.GroupName] = grp
+
 	} else {
-		grps[name] = SecurityGroup{
-			Name:                name,
-			ID:                  ID,
+		grps[*grpDetail.GroupName] = SecurityGroup{
+			SecurityGroup:       grpDetail,
 			CreationTime:        creationTime,
 			Creator:             creator,
 			IsUsed:              isUsed,
@@ -62,12 +68,23 @@ func AppendAll(src, target SecurityGroups) {
 }
 
 func mergeFields(src, tgt *SecurityGroup) error {
-	if src.Name != tgt.Name {
-		return fmt.Errorf("error mergig SecurityGroups: %s != %s", src.Name, tgt.Name)
-	}
 
-	if src.ID != "" && tgt.ID == "" {
-		tgt.ID = src.ID
+	if src.SecurityGroup != tgt.SecurityGroup {
+		if src.SecurityGroup == nil && tgt.SecurityGroup != nil {
+			// nothing to do as target alrwady have the data
+		} else if src.SecurityGroup == nil && tgt.SecurityGroup == nil {
+			return fmt.Errorf("error mergig SecurityGroups. Both objects have obj.SecurityGroup = nil")
+		} else if src.SecurityGroup == nil && tgt.SecurityGroup != nil {
+			tgt.SecurityGroup = src.SecurityGroup
+		}
+
+		if *src.GroupName != *tgt.GroupName {
+			return fmt.Errorf("error mergig SecurityGroups: %s != %s", *src.SecurityGroup.GroupName, *tgt.SecurityGroup.GroupName)
+		}
+
+		if src.SecurityGroup.GroupId != nil && tgt.SecurityGroup.GroupId != nil && *src.SecurityGroup.GroupId != "" && *tgt.SecurityGroup.GroupId == "" {
+			tgt.SecurityGroup.GroupId = src.SecurityGroup.GroupId
+		}
 	}
 
 	if src.Creator != "" && tgt.Creator == "" {

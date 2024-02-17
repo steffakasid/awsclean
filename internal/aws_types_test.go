@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,31 +16,43 @@ func init() {
 func TestAddOrUpdate(t *testing.T) {
 
 	t.Run("Add One New", func(t *testing.T) {
+		expectedName := "Existing"
+		expectedID := "ID"
+		expectedGrp := &types.SecurityGroup{
+			GroupId:   &expectedID,
+			GroupName: &expectedName,
+		}
 
 		grps := SecurityGroups{}
 
-		AddOrUpdate(grps, "Name", "ID", "creator", aws.Time(time.Now()), true, []string{})
+		AddOrUpdate(grps, expectedGrp, "creator", aws.Time(time.Now()), true, []string{})
 
 		assert.Len(t, grps, 1)
-		assert.Contains(t, grps, "Name")
+		assert.Contains(t, grps, expectedName)
 
 	})
 
 	t.Run("Update Existing", func(t *testing.T) {
-
 		expectedName := "Existing"
+		expectedID := "ID"
+		expectedGrp := &types.SecurityGroup{
+			GroupId:   &expectedID,
+			GroupName: &expectedName,
+		}
 
 		grps := SecurityGroups{
 			expectedName: SecurityGroup{
-				Name:                expectedName,
-				ID:                  "ID",
+				SecurityGroup: &types.SecurityGroup{
+					GroupId:   &expectedID,
+					GroupName: &expectedName,
+				},
 				CreationTime:        aws.Time(time.Now()),
 				IsUsed:              true,
 				AttachedToNetIfaces: []string{},
 			},
 		}
 
-		AddOrUpdate(grps, expectedName, "ID", "creator", aws.Time(time.Now()), true, []string{})
+		AddOrUpdate(grps, expectedGrp, "creator", aws.Time(time.Now()), true, []string{})
 		assert.Len(t, grps, 1)
 		assert.Equal(t, "creator", grps[expectedName].Creator)
 	})
@@ -49,8 +62,10 @@ func TestAppendAll(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		src := SecurityGroups{
 			"onlySrc": SecurityGroup{
-				Name:                "name",
-				ID:                  "ID",
+				SecurityGroup: &types.SecurityGroup{
+					GroupId:   aws.String("ID"),
+					GroupName: aws.String("name"),
+				},
 				Creator:             "creator",
 				CreationTime:        aws.Time(time.Now()),
 				IsUsed:              false,
@@ -59,8 +74,10 @@ func TestAppendAll(t *testing.T) {
 		}
 		target := SecurityGroups{
 			"onlyTarget": SecurityGroup{
-				Name:                "name2",
-				ID:                  "ID",
+				SecurityGroup: &types.SecurityGroup{
+					GroupId:   aws.String("ID"),
+					GroupName: aws.String("name2"),
+				},
 				Creator:             "creator",
 				CreationTime:        aws.Time(time.Now()),
 				IsUsed:              false,

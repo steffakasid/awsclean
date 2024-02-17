@@ -11,22 +11,18 @@ import (
 type SecGrp struct {
 	awsClient     *internal.AWS
 	olderthen     *time.Duration
-	createdAgo    *time.Duration
 	dryrun        bool
 	onlyUnused    bool
-	showTags      bool
 	usedSecGrps   internal.SecurityGroups
 	unusedSecGrps internal.SecurityGroups
 }
 
-func NewInstance(awsClient *internal.AWS, olderthen, createdAgo *time.Duration, dryrun, onlyUnused, showTags bool) *SecGrp {
+func NewInstance(awsClient *internal.AWS, olderthen *time.Duration, dryrun, onlyUnused bool) *SecGrp {
 	return &SecGrp{
 		awsClient:     awsClient,
 		olderthen:     olderthen,
-		createdAgo:    createdAgo,
 		dryrun:        dryrun,
 		onlyUnused:    onlyUnused,
-		showTags:      showTags,
 		usedSecGrps:   internal.SecurityGroups{},
 		unusedSecGrps: internal.SecurityGroups{},
 	}
@@ -74,6 +70,8 @@ func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time) error {
 				if err != nil {
 					internal.Logger.Errorf("error deleting security group: %s", err)
 				}
+			} else {
+				internal.Logger.Infof("Skipping because of CreationDate %s - %s: %s", *secGrp.SecurityGroup.GroupName, *secGrp.SecurityGroup.GroupId, secGrp.CreationTime.Format(time.RFC3339))
 			}
 		}
 	} else {

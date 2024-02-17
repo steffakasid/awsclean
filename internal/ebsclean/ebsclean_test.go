@@ -31,7 +31,7 @@ func TestNewInstance(t *testing.T) {
 	ec2ClientMock := &mocks.MockEc2client{}
 	cloudTrailmock := &mocks.MockCloudTrail{}
 	awsClient := internal.NewFromInterface(ec2ClientMock, cloudTrailmock)
-	ebsclean := NewInstance(awsClient, time.Duration(1), false, false)
+	ebsclean := NewInstance(awsClient, time.Duration(1), false)
 	assert.NotNil(t, ebsclean)
 	assert.Equal(t, time.Duration(1), ebsclean.olderthen)
 	assert.False(t, ebsclean.dryrun)

@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/steffakasid/awsclean/internal"
 )
@@ -20,22 +21,26 @@ const (
 	outputFlag    = "output"
 )
 
+const binaryname = "awsclean"
+
 var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "awsclean",
-	Short: "This tool is intended to be used to cleanup certain AWS services",
-	Long: `This tool is intended to be used to cleanup certain AWS services.
+	Use: binaryname,
+	Long: fmt.Sprintf(`This tool is intended to be used to cleanup certain AWS services.
 	
 Right now it supports the following:
-  - Unused Amazon Machine Images (AMIs)
-  - Unused Elastic Blockstore (EBS) Volumes
-  - Unused SecurityGroups
+  - Amazon Machine Images (AMIs)
+  - Elastic Blockstore (EBS) Volumes
+  - SecurityGroups
 
 Preqrequisites:
   amiclean uses already provided credentials in ~/.aws/credentials also it uses the
-  central configuration in ~/.aws/config!`,
+  central configuration in ~/.aws/config!
+
+Examples:
+  %s ami --help  show help for ami subcommand%s%s`, binaryname, amiDeleteCmdExamples, amiListCmdExamples),
 }
 
 func Execute(version string) {
@@ -46,6 +51,7 @@ func Execute(version string) {
 	}
 }
 
+// The one and only init() for package cmd
 func init() {
 
 	internal.InitLogger()
@@ -56,7 +62,6 @@ func init() {
 	amiBindFlags()
 	ebsBindFlags()
 	secGrpBindFlags()
-
 }
 
 func bindPersistentFlags() {
@@ -64,12 +69,15 @@ func bindPersistentFlags() {
 
 	peristentFlags.StringVar(&cfgFile, "config", "", "config file (default is $HOME/.amiclean.yaml)")
 
-	peristentFlags.BoolP(dryrunFlag, "d", false, "If set to true nothing will be deleted. And amiclean will just show what it would do!")
-	peristentFlags.StringP(olderthenFlag, "o", "7d", "Set the duration string (e.g 5d, 1w etc.) how old objeccts must be to be deleted or listed. E.g. if set to 7d, AMIs will be delete which are older then 7 days. For security groups we only get the creation date of the past 90 days.")
 	peristentFlags.StringP(debugFlag, "", "info", "Enable debugging. Possible Values [debug,info,warn,error,fatal]")
-	peristentFlags.StringP(outputFlag, "o", "table", "Define how to output results [table, json] (default: table)")
+	peristentFlags.StringP(outputFlag, "", "table", "Define how to output results [table, json] (default: table)")
 
 	internal.CheckError(viper.BindPFlags(peristentFlags), internal.Logger.Fatalf)
+}
+
+func deleteExtraFlags(flagset *pflag.FlagSet, objType string) {
+	flagset.BoolP(dryrunFlag, "d", false, "If set to true nothing will be deleted. And amiclean will just show what it would do!")
+	flagset.StringP(olderthenFlag, "o", "7d", fmt.Sprintf("Set the duration string (e.g 5d, 1w etc.) how old %[1]s must be to be deleted. E.g. if set to 7d, %[1]s will be delete which are older then 7 days.", objType))
 }
 
 // initConfig reads in config file and ENV variables if set.
