@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/steffakasid/awsclean/internal"
 	"github.com/steffakasid/awsclean/internal/amiclean"
+	extendedslog "github.com/steffakasid/extended-slog"
 
 	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
@@ -84,7 +85,7 @@ Examples:
 		amiclean := amiclean.NewInstance(awsClient, olderthenDuration, viper.GetString(accountFlag), viper.GetBool(dryrunFlag), viper.GetBool(launchTplFlag), viper.GetStringSlice(ignoreFlag))
 
 		err := amiclean.GetAMIs()
-		internal.CheckError(err, internal.Logger.Fatalf)
+		internal.CheckError(err, extendedslog.Logger.Fatalf)
 
 		switch viper.GetString(outputFlag) {
 		case "json", "JSON":
@@ -115,7 +116,7 @@ Examples:
 		amiclean := amiclean.NewInstance(awsClient, olderthenDuration, viper.GetString(accountFlag), viper.GetBool(dryrunFlag), viper.GetBool(launchTplFlag), viper.GetStringSlice(ignoreFlag))
 
 		err := amiclean.DeleteOlderUnusedAMIs()
-		internal.CheckError(err, internal.Logger.Fatalf)
+		internal.CheckError(err, extendedslog.Logger.Fatalf)
 	},
 }
 
@@ -137,9 +138,9 @@ func amiBindFlags() {
 	amiCmdPersistentFlags.BoolP(launchTplFlag, "l", false, "Additionally scan launch templates for used AMIs.")
 	amiCmdPersistentFlags.StringP(accountFlag, "a", "", "Set AWS account number to cleanup AMIs. Used to set owner information when selecting AMIs. If not set only 'self' is used.")
 
-	internal.CheckError(viper.BindPFlags(amiCmdPersistentFlags), internal.Logger.Fatalf)
-	internal.CheckError(viper.BindPFlags(amiDeleteCmdFlags), internal.Logger.Fatalf)
-	internal.CheckError(viper.BindPFlags(amiListCmdFlags), internal.Logger.Fatalf)
+	internal.CheckError(viper.BindPFlags(amiCmdPersistentFlags), extendedslog.Logger.Fatalf)
+	internal.CheckError(viper.BindPFlags(amiDeleteCmdFlags), extendedslog.Logger.Fatalf)
+	internal.CheckError(viper.BindPFlags(amiListCmdFlags), extendedslog.Logger.Fatalf)
 }
 
 func amiPrintTable(amis []ec2Types.Image) {
@@ -153,6 +154,6 @@ func amiPrintTable(amis []ec2Types.Image) {
 
 func amiPrintJSON(amis []ec2Types.Image) {
 	out, err := json.Marshal(amis)
-	internal.CheckError(err, internal.Logger.Fatalf)
+	internal.CheckError(err, extendedslog.Logger.Fatalf)
 	fmt.Print(string(out))
 }

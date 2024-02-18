@@ -3,11 +3,12 @@ package internal
 import (
 	"testing"
 
+	extendedslog "github.com/steffakasid/extended-slog"
 	"github.com/stretchr/testify/assert"
 )
 
 func init() {
-	InitLogger()
+	extendedslog.InitLogger()
 }
 
 func TestContains(t *testing.T) {

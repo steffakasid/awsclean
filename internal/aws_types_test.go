@@ -6,11 +6,12 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	extendedslog "github.com/steffakasid/extended-slog"
 	"github.com/stretchr/testify/assert"
 )
 
 func init() {
-	InitLogger()
+	extendedslog.InitLogger()
 }
 
 func TestAddOrUpdate(t *testing.T) {

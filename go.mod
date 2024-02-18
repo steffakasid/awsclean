@@ -1,6 +1,6 @@
 module github.com/steffakasid/awsclean
 
-go 1.21
+go 1.21.7
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.0
@@ -53,5 +53,6 @@ require (
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
+	github.com/steffakasid/extended-slog v0.0.0-20240218090729-06fca79c7e00
 	github.com/stretchr/testify v1.8.4
 )

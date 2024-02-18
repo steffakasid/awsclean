@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/steffakasid/awsclean/internal"
+	extendedslog "github.com/steffakasid/extended-slog"
 )
 
 // Constants used in command flags
@@ -54,7 +55,7 @@ func Execute(version string) {
 // The one and only init() for package cmd
 func init() {
 
-	internal.InitLogger()
+	extendedslog.InitLogger()
 
 	cobra.OnInitialize(initConfig)
 
@@ -72,7 +73,7 @@ func bindPersistentFlags() {
 	peristentFlags.StringP(debugFlag, "", "info", "Enable debugging. Possible Values [debug,info,warn,error,fatal]")
 	peristentFlags.StringP(outputFlag, "", "table", "Define how to output results [table, json] (default: table)")
 
-	internal.CheckError(viper.BindPFlags(peristentFlags), internal.Logger.Fatalf)
+	internal.CheckError(viper.BindPFlags(peristentFlags), extendedslog.Logger.Fatalf)
 }
 
 func deleteOnlyFlags(flagset *pflag.FlagSet, objType string) {
@@ -90,7 +91,7 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	} else {
 		home, err := os.UserHomeDir()
-		internal.CheckError(err, internal.Logger.Fatalf)
+		internal.CheckError(err, extendedslog.Logger.Fatalf)
 
 		viper.AddConfigPath(home)
 		viper.SetConfigType("yaml")
@@ -102,9 +103,9 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	} else {
-		internal.Logger.Error(err) // Just to show the error from ReadInConfig
+		extendedslog.Logger.Error(err) // Just to show the error from ReadInConfig
 	}
 
-	err := internal.Logger.SetLogLevel(viper.GetString(debugFlag))
-	internal.Logger.Error(err)
+	err := extendedslog.Logger.SetLogLevel(viper.GetString(debugFlag))
+	extendedslog.Logger.Error(err)
 }

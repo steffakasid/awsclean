@@ -12,13 +12,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/steffakasid/awsclean/internal"
 	"github.com/steffakasid/awsclean/internal/mocks"
+	extendedslog "github.com/steffakasid/extended-slog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xhit/go-str2duration/v2"
 )
 
 func initAMIClean(ec2ClientMock *mocks.MockEc2client, cloudTrailMock *mocks.MockCloudTrail) *AmiClean {
-	internal.InitLogger()
+	extendedslog.InitLogger()
 	return &AmiClean{
 		awsClient: internal.NewFromInterface(ec2ClientMock, cloudTrailMock),
 	}

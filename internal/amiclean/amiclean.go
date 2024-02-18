@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/steffakasid/awsclean/internal"
+	extendedslog "github.com/steffakasid/extended-slog"
 
 	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
@@ -55,12 +56,12 @@ func (a *AmiClean) GetAMIs() error {
 		if !internal.Contains(usedAMIs, *image.ImageId) {
 
 			if err != nil {
-				internal.Logger.Error(err)
+				extendedslog.Logger.Error(err)
 			}
 			a.unusedAMIs = append(a.unusedAMIs, image)
 		} else {
 			a.usedAMIs = append(a.usedAMIs, image)
-			internal.Logger.Infof("Ignored %s", *image.ImageId)
+			extendedslog.Logger.Infof("Ignored %s", *image.ImageId)
 		}
 	}
 	return nil
@@ -95,14 +96,14 @@ func (a AmiClean) DeleteOlderUnusedAMIs() error {
 				return err
 			}
 			if creationDate.Before(olderThenDate) {
-				internal.Logger.Infof("Delete %s:%s as it's creationdate %s is older then %s", *ami.ImageId, *ami.Name, *ami.CreationDate, olderThenDate.String())
+				extendedslog.Logger.Infof("Delete %s:%s as it's creationdate %s is older then %s", *ami.ImageId, *ami.Name, *ami.CreationDate, olderThenDate.String())
 				err = a.awsClient.DeregisterImage(*ami.ImageId, a.dryrun)
-				internal.CheckError(err, internal.Logger.Errorf)
+				internal.CheckError(err, extendedslog.Logger.Errorf)
 			} else {
-				internal.Logger.Infof("Keeping %s:%s as it's creationdate %s is newer then %s", *ami.ImageId, *ami.Name, *ami.CreationDate, olderThenDate.String())
+				extendedslog.Logger.Infof("Keeping %s:%s as it's creationdate %s is newer then %s", *ami.ImageId, *ami.Name, *ami.CreationDate, olderThenDate.String())
 			}
 		} else {
-			internal.Logger.Infof("Skipping %s-%s", *ami.ImageId, *ami.Name)
+			extendedslog.Logger.Infof("Skipping %s-%s", *ami.ImageId, *ami.Name)
 		}
 	}
 	return nil

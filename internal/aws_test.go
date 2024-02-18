@@ -14,12 +14,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/smithy-go"
 	"github.com/steffakasid/awsclean/internal/mocks"
+	extendedslog "github.com/steffakasid/extended-slog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func setupSUT(t *testing.T) (*AWS, *mocks.MockEc2client, *mocks.MockCloudTrail) {
-	InitLogger()
+	extendedslog.InitLogger()
 	ec2ClientMock := mocks.NewMockEc2client(t)
 	cloudTrailMock := mocks.NewMockCloudTrail(t)
 	SUT := NewFromInterface(ec2ClientMock, cloudTrailMock)

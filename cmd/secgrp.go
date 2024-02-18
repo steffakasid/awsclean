@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/steffakasid/awsclean/internal"
 	"github.com/steffakasid/awsclean/internal/secgrp"
+	extendedslog "github.com/steffakasid/extended-slog"
 	"github.com/xhit/go-str2duration/v2"
 )
 
@@ -88,7 +89,7 @@ Examples:
 		secgrp, startDatetime, endDatetime := setup()
 
 		err := secgrp.GetSecurityGroups(startDatetime, endDatetime)
-		internal.CheckError(err, internal.Logger.Fatalf)
+		internal.CheckError(err, extendedslog.Logger.Fatalf)
 
 		switch viper.GetString(outputFlag) {
 		case "json", "JSON":
@@ -116,7 +117,7 @@ Examples:
 		secgrp, startDatetime, endDatetime := setup()
 
 		err := secgrp.DeleteSecurityGroups(startDatetime, endDatetime)
-		internal.CheckError(err, internal.Logger.Fatalf)
+		internal.CheckError(err, extendedslog.Logger.Fatalf)
 	},
 }
 
@@ -124,7 +125,7 @@ func secGrpBindFlags() {
 	rootCmd.AddCommand(secGrpCmd)
 
 	ninetyDayOffset, err := str2duration.ParseDuration("90d")
-	internal.CheckError(err, internal.Logger.Fatalf)
+	internal.CheckError(err, extendedslog.Logger.Fatalf)
 
 	const objType = "SecurityGroups"
 
@@ -143,9 +144,9 @@ func secGrpBindFlags() {
 	secGrpCmd.AddCommand(secGrpListCmd)
 	secGrpCmd.AddCommand(secGrpDeleteCmd)
 
-	internal.CheckError(viper.BindPFlags(secGrpCmdPersistentFlags), internal.Logger.Fatalf)
-	internal.CheckError(viper.BindPFlags(secGrpDeleteCmdFlags), internal.Logger.Fatalf)
-	internal.CheckError(viper.BindPFlags(secGrpListCmdFlags), internal.Logger.Fatalf)
+	internal.CheckError(viper.BindPFlags(secGrpCmdPersistentFlags), extendedslog.Logger.Fatalf)
+	internal.CheckError(viper.BindPFlags(secGrpDeleteCmdFlags), extendedslog.Logger.Fatalf)
+	internal.CheckError(viper.BindPFlags(secGrpListCmdFlags), extendedslog.Logger.Fatalf)
 }
 
 func setup() (*secgrp.SecGrp, time.Time, time.Time) {
@@ -155,10 +156,10 @@ func setup() (*secgrp.SecGrp, time.Time, time.Time) {
 	secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, viper.GetBool(dryrunFlag), viper.GetBool(onlyUnusedFlag))
 
 	startDatetime, err := time.Parse(time.RFC3339, viper.GetString(startTimeFlag))
-	internal.CheckError(err, internal.Logger.Fatalf)
+	internal.CheckError(err, extendedslog.Logger.Fatalf)
 
 	endDatetime, err := time.Parse(time.RFC3339, viper.GetString(endTimeFlag))
-	internal.CheckError(err, internal.Logger.Fatalf)
+	internal.CheckError(err, extendedslog.Logger.Fatalf)
 	return secgrp, startDatetime, endDatetime
 }
 
@@ -173,6 +174,6 @@ func secGrpPrintTable(grps internal.SecurityGroups) {
 
 func secGrpPrintJSON(grps internal.SecurityGroups) {
 	out, err := json.Marshal(grps)
-	internal.CheckError(err, internal.Logger.Fatalf)
+	internal.CheckError(err, extendedslog.Logger.Fatalf)
 	fmt.Print(string(out))
 }

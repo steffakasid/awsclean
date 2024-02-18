@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/steffakasid/awsclean/internal"
+	extendedslog "github.com/steffakasid/extended-slog"
 	"github.com/xhit/go-str2duration/v2"
 )
 
@@ -68,10 +69,10 @@ func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time) error {
 				(sec.olderthen != nil && secGrp.CreationTime.Before(time.Now().Add(*sec.olderthen*-1))) {
 				err := sec.awsClient.DeleteSecurityGroup(secGrp, sec.dryrun)
 				if err != nil {
-					internal.Logger.Errorf("error deleting security group: %s", err)
+					extendedslog.Logger.Errorf("error deleting security group: %s", err)
 				}
 			} else {
-				internal.Logger.Infof("Skipping because of CreationDate %s - %s: %s", *secGrp.SecurityGroup.GroupName, *secGrp.SecurityGroup.GroupId, secGrp.CreationTime.Format(time.RFC3339))
+				extendedslog.Logger.Infof("Skipping because of CreationDate %s - %s: %s", *secGrp.SecurityGroup.GroupName, *secGrp.SecurityGroup.GroupId, secGrp.CreationTime.Format(time.RFC3339))
 			}
 		}
 	} else {

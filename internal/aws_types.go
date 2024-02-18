@@ -5,6 +5,7 @@ import (
 	"time"
 
 	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	extendedslog "github.com/steffakasid/extended-slog"
 )
 
 type SecurityGroup struct {
@@ -58,7 +59,7 @@ func AppendAll(src, target SecurityGroups) {
 		if tgtObj, exists := target[key]; exists {
 			err := mergeFields(&val, &tgtObj)
 			if err != nil {
-				Logger.Error(err)
+				extendedslog.Logger.Error(err)
 			}
 			target[key] = tgtObj
 		} else {

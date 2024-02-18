@@ -13,6 +13,7 @@ import (
 	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/steffakasid/awsclean/internal"
 	"github.com/steffakasid/awsclean/internal/mocks"
+	extendedslog "github.com/steffakasid/extended-slog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xhit/go-str2duration/v2"
@@ -21,7 +22,7 @@ import (
 var ninetyDayOffset time.Duration
 
 func setupSUT(t *testing.T, olderthen *time.Duration, dryrun, onlyUnused bool) (*SecGrp, *mocks.MockEc2client, *mocks.MockCloudTrail) {
-	internal.InitLogger()
+	extendedslog.InitLogger()
 	var err error
 	ninetyDayOffset, err = str2duration.ParseDuration("90d")
 	require.NoError(t, err)

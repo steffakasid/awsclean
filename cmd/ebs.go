@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/steffakasid/awsclean/internal"
 	"github.com/steffakasid/awsclean/internal/ebsclean"
+	extendedslog "github.com/steffakasid/extended-slog"
 )
 
 const (
@@ -123,8 +124,8 @@ func ebsBindFlags() {
 	ebsListCmdFlags := ebsListCmd.Flags()
 	listOnlyFlags(ebsListCmdFlags, objType)
 
-	internal.CheckError(viper.BindPFlags(ebsListCmdFlags), internal.Logger.Fatalf)
-	internal.CheckError(viper.BindPFlags(ebsDeleteCmdFlags), internal.Logger.Fatalf)
+	internal.CheckError(viper.BindPFlags(ebsListCmdFlags), extendedslog.Logger.Fatalf)
+	internal.CheckError(viper.BindPFlags(ebsDeleteCmdFlags), extendedslog.Logger.Fatalf)
 }
 
 func ebsPrintTable(vols []ec2Types.Volume) {
@@ -138,6 +139,6 @@ func ebsPrintTable(vols []ec2Types.Volume) {
 
 func ebsPrintJSON(vols []ec2Types.Volume) {
 	out, err := json.Marshal(vols)
-	internal.CheckError(err, internal.Logger.Fatalf)
+	internal.CheckError(err, extendedslog.Logger.Fatalf)
 	fmt.Print(string(out))
 }

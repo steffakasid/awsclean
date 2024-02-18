@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/smithy-go"
+	extendedslog "github.com/steffakasid/extended-slog"
 )
 
 type Ec2client interface {
@@ -48,11 +49,11 @@ func NewFromInterface(ec2 Ec2client, cloudtrail CloudTrail) *AWS {
 
 func NewAWSClient() *AWS {
 
-	InitLogger()
+	extendedslog.InitLogger()
 	aws := &AWS{}
 
 	cfg, err := config.LoadDefaultConfig(context.TODO())
-	CheckError(err, Logger.Fatalf)
+	CheckError(err, extendedslog.Logger.Fatalf)
 
 	aws.ec2 = ec2.NewFromConfig(cfg)
 	aws.cloudtrail = cloudtrail.NewFromConfig(cfg)
@@ -77,7 +78,7 @@ func (a *AWS) GetSecurityGroups(secGrps SecurityGroups) (SecurityGroups, error) 
 
 	for {
 		out, err := a.ec2.DescribeSecurityGroups(context.TODO(), in)
-		CheckError(err, Logger.Debugf)
+		CheckError(err, extendedslog.Logger.Debugf)
 		if nil != err {
 			return secGrpsRet, err
 		}
@@ -94,7 +95,7 @@ func (a *AWS) GetSecurityGroups(secGrps SecurityGroups) (SecurityGroups, error) 
 		}
 	}
 
-	Logger.Debugf("SecurityGroups[]: %v", secGrpsRet)
+	extendedslog.Logger.Debugf("SecurityGroups[]: %v", secGrpsRet)
 	return secGrpsRet, nil
 }
 
@@ -113,12 +114,12 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used SecurityGro
 		}
 
 		out, err := a.ec2.DescribeNetworkInterfaces(context.TODO(), in)
-		CheckError(err, Logger.Debugf)
+		CheckError(err, extendedslog.Logger.Debugf)
 		if nil != err {
 			return used, unused, err
 		}
 		if len(out.NetworkInterfaces) == 0 {
-			Logger.Debug("No ENI attached to group with ID: ", *secGrp.SecurityGroup.GroupId, secGrp.SecurityGroup.GroupName)
+			extendedslog.Logger.Debug("No ENI attached to group with ID: ", *secGrp.SecurityGroup.GroupId, secGrp.SecurityGroup.GroupName)
 			AddOrUpdate(unused, secGrp.SecurityGroup, secGrp.Creator, secGrp.CreationTime, false, []string{})
 		}
 		if len(out.NetworkInterfaces) > 0 {
@@ -164,14 +165,14 @@ func (a AWS) GetCloudTrailForSecGroups(startTime, endTime time.Time) SecurityGro
 		if out.NextToken != nil {
 			nextToken = *out.NextToken
 		}
-		CheckError(err, Logger.Errorf)
+		CheckError(err, extendedslog.Logger.Errorf)
 
 		for _, ev := range out.Events {
 			for _, res := range ev.Resources {
 
 				AddOrUpdate(secGrps, &ec2Types.SecurityGroup{GroupName: res.ResourceName}, *ev.Username, ev.EventTime, true, []string{})
 
-				Logger.Debug("Adding ressource", *res.ResourceName, *res.ResourceType)
+				extendedslog.Logger.Debug("Adding ressource", *res.ResourceName, *res.ResourceType)
 			}
 		}
 	}
@@ -184,9 +185,9 @@ func (a *AWS) DeleteSecurityGroup(secGrp SecurityGroup, dryrun bool) error {
 		return fmt.Errorf("can not delte SecurityGroup without GroupId") // this should usually never happen
 	}
 	if secGrp.SecurityGroup.GroupName != nil {
-		Logger.Debugf("DeleteSecurityGroup(%v - %v), drydrun: %t", *secGrp.SecurityGroup.GroupName, *secGrp.SecurityGroup.GroupId, dryrun)
+		extendedslog.Logger.Debugf("DeleteSecurityGroup(%v - %v), drydrun: %t", *secGrp.SecurityGroup.GroupName, *secGrp.SecurityGroup.GroupId, dryrun)
 	} else {
-		Logger.Debugf("DeleteSecurityGroup(%v), drydrun: %t", *secGrp.SecurityGroup.GroupId, dryrun)
+		extendedslog.Logger.Debugf("DeleteSecurityGroup(%v), drydrun: %t", *secGrp.SecurityGroup.GroupId, dryrun)
 	}
 
 	input := &ec2.DeleteSecurityGroupInput{
@@ -207,7 +208,7 @@ func (a *AWS) GetUsedAMIsFromEC2() []string {
 			opts.NextToken = &nextToken
 		}
 		ec2Instances, err := a.ec2.DescribeInstances(context.TODO(), opts)
-		CheckError(err, Logger.Errorf)
+		CheckError(err, extendedslog.Logger.Errorf)
 		if ec2Instances != nil {
 			for _, reserveration := range ec2Instances.Reservations {
 				for _, instance := range reserveration.Instances {
@@ -221,7 +222,7 @@ func (a *AWS) GetUsedAMIsFromEC2() []string {
 		}
 		nextToken = *ec2Instances.NextToken
 	}
-	Logger.Debugf("UsedImages[] from EC2 %v", usedImages)
+	extendedslog.Logger.Debugf("UsedImages[] from EC2 %v", usedImages)
 	return usedImages
 }
 
@@ -236,7 +237,7 @@ func (a *AWS) GetUsedAMIsFromLaunchTpls() []string {
 			opts.NextToken = &nextToken
 		}
 		launchTpls, err := a.ec2.DescribeLaunchTemplateVersions(context.TODO(), opts)
-		CheckError(err, Logger.Errorf)
+		CheckError(err, extendedslog.Logger.Errorf)
 		if launchTpls != nil {
 			for _, launchTplVersion := range launchTpls.LaunchTemplateVersions {
 				if launchTplVersion.LaunchTemplateData.ImageId != nil {
@@ -249,7 +250,7 @@ func (a *AWS) GetUsedAMIsFromLaunchTpls() []string {
 		}
 		nextToken = *launchTpls.NextToken
 	}
-	Logger.Debugf("UsedImages[] from Launch Templates %v", usedImages)
+	extendedslog.Logger.Debugf("UsedImages[] from Launch Templates %v", usedImages)
 	return usedImages
 }
 
@@ -284,7 +285,7 @@ func (a AWS) GetAvailableEBSVolumes() []ec2Types.Volume {
 			opts.NextToken = &nextToken
 		}
 		volumeOutput, err := a.ec2.DescribeVolumes(context.TODO(), opts)
-		CheckError(err, Logger.Errorf)
+		CheckError(err, extendedslog.Logger.Errorf)
 		if volumeOutput != nil {
 			volumes = append(volumes, volumeOutput.Volumes...)
 		}

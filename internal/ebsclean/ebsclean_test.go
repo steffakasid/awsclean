@@ -13,12 +13,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/steffakasid/awsclean/internal"
 	"github.com/steffakasid/awsclean/internal/mocks"
+	extendedslog "github.com/steffakasid/extended-slog"
 	"github.com/stretchr/testify/assert"
 	"github.com/xhit/go-str2duration/v2"
 )
 
 func initEBSClean(t *testing.T, ec2ClientMock *mocks.MockEc2client, cloudTrailMock *mocks.MockCloudTrail) *EBSClean {
-	internal.InitLogger()
+	extendedslog.InitLogger()
 	olderthenDuration, err := str2duration.ParseDuration("7d")
 	assert.NoError(t, err)
 	return &EBSClean{

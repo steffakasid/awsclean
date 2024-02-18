@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/steffakasid/awsclean/internal"
+	extendedslog "github.com/steffakasid/extended-slog"
 )
 
 type EBSClean struct {
@@ -32,7 +33,7 @@ func (e *EBSClean) GetEBSVolumes() {
 			e.unusedVolumes = append(e.unusedVolumes, volume)
 		} else {
 			e.usedVolumes = append(e.usedVolumes, volume)
-			internal.Logger.Infof("In use:%s\n\n", *volume.VolumeId)
+			extendedslog.Logger.Infof("In use:%s\n\n", *volume.VolumeId)
 		}
 	}
 }
@@ -54,24 +55,24 @@ func (e EBSClean) DeleteUnusedEBSVolumes() {
 
 	today := time.Now()
 	olderThenDate := today.Add(e.olderthen * -1)
-	internal.Logger.Debugf("OlderThenDate %v", olderThenDate)
+	extendedslog.Logger.Debugf("OlderThenDate %v", olderThenDate)
 
 	for _, volume := range e.unusedVolumes {
 
 		if volume.CreateTime.Before(olderThenDate) {
-			internal.Logger.Infof("Delete %s", *volume.VolumeId)
+			extendedslog.Logger.Infof("Delete %s", *volume.VolumeId)
 			err := e.awsClient.DeleteVolume(*volume.VolumeId, e.dryrun)
 			if err != nil {
-				internal.Logger.Errorf("error deleting volume: %s", err)
+				extendedslog.Logger.Errorf("error deleting volume: %s", err)
 			}
 			fmt.Println()
 			deleted++
 		} else {
-			internal.Logger.Infof("Skipping %s", *volume.VolumeId)
+			extendedslog.Logger.Infof("Skipping %s", *volume.VolumeId)
 			fmt.Println()
 			skipped++
 		}
 	}
 
-	internal.Logger.Infof("Deleted %d, Skipped %d EBS volumes", deleted, skipped)
+	extendedslog.Logger.Infof("Deleted %d, Skipped %d EBS volumes", deleted, skipped)
 }
