@@ -1,18 +1,6 @@
 package internal
 
-import (
-	"regexp"
-	"time"
-
-	extendedslog "github.com/steffakasid/extended-slog"
-	"github.com/xhit/go-str2duration/v2"
-)
-
-func ParseDuration(str string) time.Duration {
-	duration, err := str2duration.ParseDuration(str)
-	CheckError(err, extendedslog.Logger.Fatalf)
-	return duration
-}
+import "regexp"
 
 func Contains(arr []string, elem string) bool {
 	for _, itm := range arr {
