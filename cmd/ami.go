@@ -18,12 +18,6 @@ import (
 )
 
 const (
-	accountFlag   = "account"
-	launchTplFlag = "launch-templates"
-	ignoreFlag    = "ignore"
-)
-
-const (
 	amiCmdName       = "ami"
 	amiListCmdName   = "list"
 	amiDeleteCmdName = "delete"
@@ -128,15 +122,15 @@ func amiBindFlags() {
 	const objType = "AMIs"
 
 	amiDeleteCmdFlags := amiDeleteCmd.Flags()
-	amiDeleteCmdFlags.StringArrayP(ignoreFlag, "i", []string{}, "Set ignore regex patterns. If a ami name matches the pattern it will be exclueded from cleanup.")
+	amiDeleteCmdFlags.StringArrayP(ignoreFlag, ignoreFlagSH, []string{}, "Set ignore regex patterns. If a ami name matches the pattern it will be exclueded from cleanup.")
 	deleteOnlyFlags(amiDeleteCmdFlags, objType)
 
 	amiListCmdFlags := amiListCmd.Flags()
 	listOnlyFlags(amiListCmdFlags, objType)
 
 	amiCmdPersistentFlags := amiCmd.PersistentFlags()
-	amiCmdPersistentFlags.BoolP(launchTplFlag, "l", false, "Additionally scan launch templates for used AMIs.")
-	amiCmdPersistentFlags.StringP(accountFlag, "a", "", "Set AWS account number to cleanup AMIs. Used to set owner information when selecting AMIs. If not set only 'self' is used.")
+	amiCmdPersistentFlags.BoolP(launchTplFlag, launchTplFlagSH, false, "Additionally scan launch templates for used AMIs.")
+	amiCmdPersistentFlags.StringP(accountFlag, accountFlagSH, "", "Set AWS account number to cleanup AMIs. Used to set owner information when selecting AMIs. If not set only 'self' is used.")
 
 	internal.CheckError(viper.BindPFlags(amiCmdPersistentFlags), extendedslog.Logger.Fatalf)
 	internal.CheckError(viper.BindPFlags(amiDeleteCmdFlags), extendedslog.Logger.Fatalf)

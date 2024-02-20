@@ -139,6 +139,7 @@ func (a AWS) GetCloudTrailForSecGroups(startTime, endTime time.Time) SecurityGro
 	secGrps := SecurityGroups{}
 
 	for nextToken != "" {
+		time.Sleep(5 * time.Second)
 		lookup := &cloudtrail.LookupEventsInput{
 			StartTime: aws.Time(startTime),
 			EndTime:   aws.Time(endTime),
@@ -151,9 +152,8 @@ func (a AWS) GetCloudTrailForSecGroups(startTime, endTime time.Time) SecurityGro
 		}
 		if nextToken != "empty" {
 			lookup.NextToken = aws.String(nextToken)
-		} else {
-			nextToken = ""
 		}
+
 		// We only get CloudTrailEvents of the last 90d: https://docs.aws.amazon.com/sdk-for-go/api/service/cloudtrail/#CloudTrail.LookupEvents
 		// ResouceName: vpc-a51078cd
 		// ResouceName: eksctl-eks-dev-nodegroup-apic-gw-1a-green-SG-16ACVO6XMU6HE
@@ -162,17 +162,23 @@ func (a AWS) GetCloudTrailForSecGroups(startTime, endTime time.Time) SecurityGro
 		// Wer ist schuld? `email@adress.com`
 		// ---------------------------------------------
 		out, err := a.cloudtrail.LookupEvents(context.TODO(), lookup)
-		if out.NextToken != nil {
-			nextToken = *out.NextToken
-		}
 		CheckError(err, extendedslog.Logger.Errorf)
+		// out could be nil if rate is exceeded
+		// TODO: needs unit test
+		if out != nil && out.NextToken != nil {
+			nextToken = *out.NextToken
+		} else {
+			nextToken = ""
+		}
 
-		for _, ev := range out.Events {
-			for _, res := range ev.Resources {
+		if out != nil {
+			for _, ev := range out.Events {
+				for _, res := range ev.Resources {
 
-				AddOrUpdate(secGrps, &ec2Types.SecurityGroup{GroupName: res.ResourceName}, *ev.Username, ev.EventTime, true, []string{})
+					AddOrUpdate(secGrps, &ec2Types.SecurityGroup{GroupName: res.ResourceName}, *ev.Username, ev.EventTime, true, []string{})
 
-				extendedslog.Logger.Debug("Adding ressource", *res.ResourceName, *res.ResourceType)
+					extendedslog.Logger.Debug("Adding ressource", *res.ResourceName, *res.ResourceType)
+				}
 			}
 		}
 	}

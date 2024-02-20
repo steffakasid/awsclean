@@ -16,35 +16,16 @@ type SecurityGroup struct {
 	AttachedToNetIfaces []string
 }
 
-type SecurityGroups = map[string]SecurityGroup
+type SecurityGroups = map[string]*SecurityGroup
 
 func AddOrUpdate(grps SecurityGroups, grpDetail *ec2Types.SecurityGroup, creator string, creationTime *time.Time, isUsed bool, netIfaces []string) {
 
 	if grp, isMapContainsKey := grps[*grpDetail.GroupName]; isMapContainsKey {
 
-		if grp.SecurityGroup == nil {
-			grp.SecurityGroup = grpDetail
-		} else {
-			// TODO: maybe we need better merging of the full grp.SecurityGroup object
-			if *grp.SecurityGroup.GroupName != "" {
-				grp.SecurityGroup.GroupName = grp.GroupName
-			}
-			if *grp.SecurityGroup.GroupId != "" {
-				grp.SecurityGroup.GroupId = grp.GroupId
-			}
-		}
-		if creator != "" {
-			grp.Creator = creator
-		}
-		if creationTime != nil {
-			grp.CreationTime = creationTime
-		}
-		grp.IsUsed = isUsed
-		grp.AttachedToNetIfaces = netIfaces
-		grps[*grpDetail.GroupName] = grp
+		mergeFields(grp, grps[*grp.GroupName])
 
 	} else {
-		grps[*grpDetail.GroupName] = SecurityGroup{
+		grps[*grpDetail.GroupName] = &SecurityGroup{
 			SecurityGroup:       grpDetail,
 			CreationTime:        creationTime,
 			Creator:             creator,
@@ -57,7 +38,7 @@ func AddOrUpdate(grps SecurityGroups, grpDetail *ec2Types.SecurityGroup, creator
 func AppendAll(src, target SecurityGroups) {
 	for key, val := range src {
 		if tgtObj, exists := target[key]; exists {
-			err := mergeFields(&val, &tgtObj)
+			err := mergeFields(val, tgtObj)
 			if err != nil {
 				extendedslog.Logger.Error(err)
 			}

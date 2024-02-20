@@ -67,7 +67,7 @@ func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time) error {
 		for _, secGrp := range sec.unusedSecGrps {
 			if secGrp.CreationTime == nil ||
 				(sec.olderthen != nil && secGrp.CreationTime.Before(time.Now().Add(*sec.olderthen*-1))) {
-				err := sec.awsClient.DeleteSecurityGroup(secGrp, sec.dryrun)
+				err := sec.awsClient.DeleteSecurityGroup(*secGrp, sec.dryrun)
 				if err != nil {
 					extendedslog.Logger.Errorf("error deleting security group: %s", err)
 				}

@@ -6,20 +6,43 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/steffakasid/awsclean/internal"
 	extendedslog "github.com/steffakasid/extended-slog"
+	"github.com/xhit/go-str2duration/v2"
 )
 
 // Constants used in command flags
 const (
-	dryrunFlag    = "dry-run"
-	olderthenFlag = "older-then"
-	debugFlag     = "debug"
-	outputFlag    = "output"
+	accountFlag    = "account"
+	debugFlag      = "debug"
+	dryrunFlag     = "dry-run"
+	endTimeFlag    = "end-time"
+	ignoreFlag     = "ignore"
+	launchTplFlag  = "launch-templates"
+	olderthenFlag  = "older-then"
+	outputFlag     = "output"
+	onlyUnusedFlag = "only-unused"
+	startTimeFlag  = "start-time"
+	showtagsFlag   = "show-tags"
+)
+
+// constants used for short hand flags (to avoid collitions)
+const (
+	accountFlagSH    = "a"
+	dryrunFlagSH     = "d"
+	endTimeFlagSH    = "e"
+	ignoreFlagSH     = "i"
+	launchTplFlagSH  = "l"
+	noShortHand      = ""
+	onlyUnusedFlagSH = "u"
+	olderthenFlagSH  = "o"
+	startTimeFlagSH  = "s"
+	showtagsFlagSH   = "t"
 )
 
 const binaryname = "awsclean"
@@ -77,12 +100,18 @@ func bindPersistentFlags() {
 }
 
 func deleteOnlyFlags(flagset *pflag.FlagSet, objType string) {
-	flagset.BoolP(dryrunFlag, "d", false, "If set to true nothing will be deleted. And amiclean will just show what it would do!")
-	flagset.StringP(olderthenFlag, "o", "7d", fmt.Sprintf("Set the duration string (e.g 5d, 1w etc.) how old %[1]s must be to be deleted. E.g. if set to 7d, %[1]s will be delete which are older then 7 days.", objType))
+	flagset.BoolP(dryrunFlag, dryrunFlagSH, false, "If set to true nothing will be deleted. And amiclean will just show what it would do!")
+	flagset.StringP(olderthenFlag, olderthenFlagSH, "7d", fmt.Sprintf("Set the duration string (e.g 5d, 1w etc.) how old %[1]s must be to be deleted. E.g. if set to 7d, %[1]s will be delete which are older then 7 days.", objType))
 }
 
 func listOnlyFlags(flagset *pflag.FlagSet, objType string) {
-	flagset.BoolP(showtagsFlag, "s", false, fmt.Sprintf("show tags of %s", objType))
+	flagset.BoolP(showtagsFlag, showtagsFlagSH, false, fmt.Sprintf("show tags of %s", objType))
+
+	ninetyDayOffset, err := str2duration.ParseDuration("90d")
+	internal.CheckError(err, extendedslog.Logger.Fatalf)
+	ninetyDaysAgo := time.Now().Add(ninetyDayOffset * -1)
+	flagset.StringP(startTimeFlag, startTimeFlagSH, ninetyDaysAgo.Format(time.RFC3339), fmt.Sprintf("Set start datetime using format: %s [default: %s]", time.RFC3339, ninetyDaysAgo.Format(time.RFC3339)))
+	flagset.StringP(endTimeFlag, endTimeFlagSH, time.Now().Format(time.RFC3339), fmt.Sprintf("Set end datetime using format: %s [default: %s]", time.RFC3339, time.Now().Format(time.RFC3339)))
 }
 
 // initConfig reads in config file and ENV variables if set.

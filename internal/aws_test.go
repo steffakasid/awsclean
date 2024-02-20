@@ -138,13 +138,13 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts2).Return(&expectedOut2, nil).Once()
 
 		secGrps := SecurityGroups{
-			"Group1": SecurityGroup{
+			"Group1": &SecurityGroup{
 				SecurityGroup: &types.SecurityGroup{
 					GroupName: &expectedGrpName1,
 					GroupId:   &expectedGrpID1,
 				},
 			},
-			"Group2": SecurityGroup{
+			"Group2": &SecurityGroup{
 				SecurityGroup: &types.SecurityGroup{
 					GroupName: &expectedGrpName2,
 					GroupId:   &expectedGrpID2,
@@ -190,13 +190,13 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts2).Return(nil, fmt.Errorf("Something went wrong")).Once()
 
 		secGrps := SecurityGroups{
-			"Group1": SecurityGroup{
+			"Group1": &SecurityGroup{
 				SecurityGroup: &types.SecurityGroup{
 					GroupId:   &expectedGrpID1,
 					GroupName: &expectedGrpName1,
 				},
 			},
-			"Group2": SecurityGroup{
+			"Group2": &SecurityGroup{
 				SecurityGroup: &types.SecurityGroup{
 					GroupId:   &expectedGrpID2,
 					GroupName: &expectedGrpName2,

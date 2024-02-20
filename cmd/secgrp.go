@@ -14,15 +14,6 @@ import (
 	"github.com/steffakasid/awsclean/internal"
 	"github.com/steffakasid/awsclean/internal/secgrp"
 	extendedslog "github.com/steffakasid/extended-slog"
-	"github.com/xhit/go-str2duration/v2"
-)
-
-// Constants used in command flags
-const (
-	onlyUnusedFlag = "only-unused"
-	createdAgoFlag = "created-ago"
-	startTimeFlag  = "start-time"
-	endTimeFlag    = "end-time"
 )
 
 const (
@@ -124,22 +115,16 @@ Examples:
 func secGrpBindFlags() {
 	rootCmd.AddCommand(secGrpCmd)
 
-	ninetyDayOffset, err := str2duration.ParseDuration("90d")
-	internal.CheckError(err, extendedslog.Logger.Fatalf)
-
 	const objType = "SecurityGroups"
 
 	secGrpListCmdFlags := secGrpListCmd.Flags()
-	secGrpListCmdFlags.BoolP(onlyUnusedFlag, "u", false, "defines if only-unused SecurityGroups are listed or all [Default: false]")
+	secGrpListCmdFlags.BoolP(onlyUnusedFlag, onlyUnusedFlagSH, false, "defines if only-unused SecurityGroups are listed or all [Default: false]")
 	listOnlyFlags(secGrpListCmdFlags, objType)
 
 	secGrpDeleteCmdFlags := secGrpDeleteCmd.Flags()
 	deleteOnlyFlags(secGrpDeleteCmdFlags, objType)
 
 	secGrpCmdPersistentFlags := secGrpCmd.PersistentFlags()
-	ninetyDaysAgo := time.Now().Add(ninetyDayOffset * -1)
-	secGrpCmdPersistentFlags.StringP(startTimeFlag, "s", ninetyDaysAgo.Format(time.RFC3339), fmt.Sprintf("Set start datetime using format: %s [default: %s]", time.RFC3339, ninetyDaysAgo.Format(time.RFC3339)))
-	secGrpCmdPersistentFlags.StringP(endTimeFlag, "e", time.Now().Format(time.RFC3339), fmt.Sprintf("Set end datetime using format: %s [default: %s]", time.RFC3339, time.Now().Format(time.RFC3339)))
 
 	secGrpCmd.AddCommand(secGrpListCmd)
 	secGrpCmd.AddCommand(secGrpDeleteCmd)

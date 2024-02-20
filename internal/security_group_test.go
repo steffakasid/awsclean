@@ -42,7 +42,7 @@ func TestAddOrUpdate(t *testing.T) {
 		}
 
 		grps := SecurityGroups{
-			expectedName: SecurityGroup{
+			expectedName: &SecurityGroup{
 				SecurityGroup: &types.SecurityGroup{
 					GroupId:   &expectedID,
 					GroupName: &expectedName,
@@ -62,7 +62,7 @@ func TestAddOrUpdate(t *testing.T) {
 func TestAppendAll(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		src := SecurityGroups{
-			"onlySrc": SecurityGroup{
+			"onlySrc": &SecurityGroup{
 				SecurityGroup: &types.SecurityGroup{
 					GroupId:   aws.String("ID"),
 					GroupName: aws.String("name"),
@@ -74,7 +74,7 @@ func TestAppendAll(t *testing.T) {
 			},
 		}
 		target := SecurityGroups{
-			"onlyTarget": SecurityGroup{
+			"onlyTarget": &SecurityGroup{
 				SecurityGroup: &types.SecurityGroup{
 					GroupId:   aws.String("ID"),
 					GroupName: aws.String("name2"),

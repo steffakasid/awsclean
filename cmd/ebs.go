@@ -18,10 +18,6 @@ import (
 )
 
 const (
-	showtagsFlag = "show-tags"
-)
-
-const (
 	ebsCmdName       = "ebs"
 	ebsDeleteCmdName = "delete"
 	ebsListCmdName   = "list"
