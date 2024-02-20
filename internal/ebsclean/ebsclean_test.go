@@ -18,7 +18,8 @@ import (
 	"github.com/xhit/go-str2duration/v2"
 )
 
-func initEBSClean(t *testing.T, ec2ClientMock *mocks.MockEc2client, cloudTrailMock *mocks.MockCloudTrail) *EBSClean {
+// TODO: needs refactoring
+func setupSUT(t *testing.T, ec2ClientMock *mocks.MockEc2client, cloudTrailMock *mocks.MockCloudTrail) *EBSClean {
 	extendedslog.InitLogger()
 	olderthenDuration, err := str2duration.ParseDuration("7d")
 	assert.NoError(t, err)
@@ -32,7 +33,7 @@ func TestNewInstance(t *testing.T) {
 	ec2ClientMock := &mocks.MockEc2client{}
 	cloudTrailmock := &mocks.MockCloudTrail{}
 	awsClient := internal.NewFromInterface(ec2ClientMock, cloudTrailmock)
-	ebsclean := NewInstance(awsClient, time.Duration(1), false)
+	ebsclean := NewInstance(awsClient, time.Duration(1), false, false)
 	assert.NotNil(t, ebsclean)
 	assert.Equal(t, time.Duration(1), ebsclean.olderthen)
 	assert.False(t, ebsclean.dryrun)
@@ -48,7 +49,7 @@ func TestDeleteUnusedEBSVolumes(t *testing.T) {
 		// should do two describe calls and four delete calls (two delete per describe)
 		toDelete := mockDescribeVolumes(2, 2, deleteWhenOlder, ec2ClientMock)
 		mockDeleteVolume(toDelete, false, ec2ClientMock)
-		SUT := initEBSClean(t, ec2ClientMock, cloudTrailMock)
+		SUT := setupSUT(t, ec2ClientMock, cloudTrailMock)
 
 		SUT.DeleteUnusedEBSVolumes()
 		ec2ClientMock.AssertExpectations(t)

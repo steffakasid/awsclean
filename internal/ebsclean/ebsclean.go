@@ -13,15 +13,17 @@ type EBSClean struct {
 	awsClient     *internal.AWS
 	olderthen     time.Duration
 	dryrun        bool
+	onlyUnused    bool
 	usedVolumes   []types.Volume
 	unusedVolumes []types.Volume
 }
 
-func NewInstance(awsClient *internal.AWS, olderthen time.Duration, dryrun bool) *EBSClean {
+func NewInstance(awsClient *internal.AWS, olderthen time.Duration, dryrun bool, onlyunused bool) *EBSClean {
 	return &EBSClean{
-		awsClient: awsClient,
-		olderthen: olderthen,
-		dryrun:    dryrun,
+		awsClient:  awsClient,
+		olderthen:  olderthen,
+		dryrun:     dryrun,
+		onlyUnused: onlyunused,
 	}
 }
 
@@ -42,7 +44,9 @@ func (e EBSClean) GetAllVolumes() []types.Volume {
 	all := []types.Volume{}
 
 	all = append(all, e.unusedVolumes...)
-	all = append(all, e.usedVolumes...)
+	if !e.onlyUnused {
+		all = append(all, e.usedVolumes...)
+	}
 
 	return all
 }

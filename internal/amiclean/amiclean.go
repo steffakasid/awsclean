@@ -15,6 +15,7 @@ type AmiClean struct {
 	awsaccount     string
 	dryrun         bool
 	useLaunchTpls  bool
+	onlyUnused     bool
 	usedAMIs       []ec2Types.Image
 	unusedAMIs     []ec2Types.Image
 	ignorePatterns []string
@@ -24,6 +25,7 @@ func NewInstance(
 	awsClient *internal.AWS,
 	olderthen time.Duration, awsaccount string,
 	dryrun bool,
+	onlyunused bool,
 	useLaunchTpls bool,
 	ignorePatterns []string) *AmiClean {
 
@@ -32,6 +34,7 @@ func NewInstance(
 		olderthen:      olderthen,
 		awsaccount:     awsaccount,
 		dryrun:         dryrun,
+		onlyUnused:     onlyunused,
 		useLaunchTpls:  useLaunchTpls,
 		usedAMIs:       []ec2Types.Image{},
 		unusedAMIs:     []ec2Types.Image{},
@@ -70,8 +73,10 @@ func (a *AmiClean) GetAMIs() error {
 func (a AmiClean) GetAllAMIs() []ec2Types.Image {
 	all := []ec2Types.Image{}
 
-	all = append(all, a.usedAMIs...)
 	all = append(all, a.unusedAMIs...)
+	if !a.onlyUnused {
+		all = append(all, a.usedAMIs...)
+	}
 
 	return all
 }

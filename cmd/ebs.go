@@ -75,7 +75,7 @@ Examples:
 		olderthenDuration := internal.ParseDuration(viper.GetString(olderthenFlag))
 
 		awsClient := internal.NewAWSClient()
-		ebsclean := ebsclean.NewInstance(awsClient, olderthenDuration, viper.GetBool(dryrunFlag))
+		ebsclean := ebsclean.NewInstance(awsClient, olderthenDuration, viper.GetBool(dryrunFlag), viper.GetBool(onlyUnusedFlag))
 
 		ebsclean.DeleteUnusedEBSVolumes()
 	},
@@ -94,7 +94,7 @@ Examples:
 		olderthenDuration := internal.ParseDuration(viper.GetString(olderthenFlag))
 
 		awsClient := internal.NewAWSClient()
-		ebsclean := ebsclean.NewInstance(awsClient, olderthenDuration, viper.GetBool(dryrunFlag))
+		ebsclean := ebsclean.NewInstance(awsClient, olderthenDuration, viper.GetBool(dryrunFlag), viper.GetBool(onlyUnusedFlag))
 
 		ebsclean.GetEBSVolumes()
 

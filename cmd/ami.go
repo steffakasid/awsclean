@@ -76,7 +76,13 @@ Examples:
 
 		awsClient := internal.NewAWSClient()
 
-		amiclean := amiclean.NewInstance(awsClient, olderthenDuration, viper.GetString(accountFlag), viper.GetBool(dryrunFlag), viper.GetBool(launchTplFlag), viper.GetStringSlice(ignoreFlag))
+		amiclean := amiclean.NewInstance(awsClient,
+			olderthenDuration,
+			viper.GetString(accountFlag),
+			viper.GetBool(dryrunFlag),
+			viper.GetBool(onlyUnusedFlag),
+			viper.GetBool(launchTplFlag),
+			viper.GetStringSlice(ignoreFlag))
 
 		err := amiclean.GetAMIs()
 		internal.CheckError(err, extendedslog.Logger.Fatalf)
@@ -107,7 +113,13 @@ Examples:
 
 		awsClient := internal.NewAWSClient()
 
-		amiclean := amiclean.NewInstance(awsClient, olderthenDuration, viper.GetString(accountFlag), viper.GetBool(dryrunFlag), viper.GetBool(launchTplFlag), viper.GetStringSlice(ignoreFlag))
+		amiclean := amiclean.NewInstance(awsClient,
+			olderthenDuration,
+			viper.GetString(accountFlag),
+			viper.GetBool(dryrunFlag),
+			viper.GetBool(onlyUnusedFlag),
+			viper.GetBool(launchTplFlag),
+			viper.GetStringSlice(ignoreFlag))
 
 		err := amiclean.DeleteOlderUnusedAMIs()
 		internal.CheckError(err, extendedslog.Logger.Fatalf)
