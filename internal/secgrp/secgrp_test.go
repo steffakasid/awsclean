@@ -2,7 +2,6 @@ package secgrp
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -65,7 +64,7 @@ func TestGetSecurityGroups(t *testing.T) {
 					Resources: []cloudtrailTypes.Resource{
 						{
 							ResourceName: aws.String(expectedSecGrpName),
-							ResourceType: aws.String("SecurityGroup"),
+							ResourceType: aws.String("AWS::EC2::SecurityGroup"),
 						},
 					},
 				},
@@ -89,7 +88,8 @@ func TestGetSecurityGroups(t *testing.T) {
 		expectedDescribeNetIfaceOpts := &ec2.DescribeNetworkInterfacesInput{
 			Filters: []ec2Types.Filter{
 				{
-					Values: []string{fmt.Sprintf("Name=%s", expectedSecGrpID)}},
+					Name:   aws.String("group-name"),
+					Values: []string{expectedSecGrpName}},
 			},
 		}
 		expectedDescribeNetIfaceOut := &ec2.DescribeNetworkInterfacesOutput{}
@@ -135,7 +135,7 @@ func TestGetSecurityGroups(t *testing.T) {
 					Resources: []cloudtrailTypes.Resource{
 						{
 							ResourceName: aws.String(expectedSecGrpName),
-							ResourceType: aws.String("SecurityGroup"),
+							ResourceType: aws.String("AWS::EC2::SecurityGroup"),
 						},
 					},
 				},
@@ -160,7 +160,9 @@ func TestGetSecurityGroups(t *testing.T) {
 		expectedDescribeNetIfaceOpts := &ec2.DescribeNetworkInterfacesInput{
 			Filters: []ec2Types.Filter{
 				{
-					Values: []string{fmt.Sprintf("Name=%s", expectedSecGrpID)}},
+					Name:   aws.String("group-name"),
+					Values: []string{expectedSecGrpName},
+				},
 			},
 		}
 		expectedDescribeNetIfaceOut := &ec2.DescribeNetworkInterfacesOutput{}
@@ -218,7 +220,9 @@ func TestDeleteSecurityGroups(t *testing.T) {
 		expectedDescribeNetIfaceOpts := &ec2.DescribeNetworkInterfacesInput{
 			Filters: []ec2Types.Filter{
 				{
-					Values: []string{fmt.Sprintf("Name=%s", expectedSecGrpID)}},
+					Name:   aws.String("group-name"),
+					Values: []string{expectedSecGrpName},
+				},
 			},
 		}
 		expectedDescribeNetIfaceOut := &ec2.DescribeNetworkInterfacesOutput{}
@@ -291,7 +295,8 @@ func TestDeleteSecurityGroups(t *testing.T) {
 		expectedDescribeNetIfaceOpts := &ec2.DescribeNetworkInterfacesInput{
 			Filters: []ec2Types.Filter{
 				{
-					Values: []string{fmt.Sprintf("Name=%s", expectedSecGrpID)},
+					Name:   aws.String("group-name"),
+					Values: []string{expectedSecGrpName},
 				},
 			},
 		}

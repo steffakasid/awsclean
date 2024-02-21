@@ -114,7 +114,8 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		expectedOpts1 := &ec2.DescribeNetworkInterfacesInput{
 			Filters: []types.Filter{
 				{
-					Values: []string{fmt.Sprintf("Name=%s", expectedGrpID1)}},
+					Name:   aws.String("group-name"),
+					Values: []string{expectedGrpName1}},
 			},
 		}
 		expectedOut1 := ec2.DescribeNetworkInterfacesOutput{
@@ -129,7 +130,8 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		expectedOpts2 := &ec2.DescribeNetworkInterfacesInput{
 			Filters: []types.Filter{
 				{
-					Values: []string{fmt.Sprintf("Name=%s", expectedGrpID2)}},
+					Name:   aws.String("group-name"),
+					Values: []string{expectedGrpName2}},
 			},
 		}
 		expectedOut2 := ec2.DescribeNetworkInterfacesOutput{
@@ -159,9 +161,7 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 	})
 
 	t.Run("Error from AWS", func(t *testing.T) {
-		expectedGrpID1 := "1234"
 		expectedGrpName1 := "groupname1"
-		expectedGrpID2 := "5678"
 		expectedGrpName2 := "groupname2"
 
 		SUT, mock, _ := setupSUT(t)
@@ -169,7 +169,8 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		expectedOpts1 := &ec2.DescribeNetworkInterfacesInput{
 			Filters: []types.Filter{
 				{
-					Values: []string{fmt.Sprintf("Name=%s", expectedGrpID1)}},
+					Name:   aws.String("group-name"),
+					Values: []string{expectedGrpName1}},
 			},
 		}
 		expectedOut1 := ec2.DescribeNetworkInterfacesOutput{
@@ -184,7 +185,8 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		expectedOpts2 := &ec2.DescribeNetworkInterfacesInput{
 			Filters: []types.Filter{
 				{
-					Values: []string{fmt.Sprintf("Name=%s", expectedGrpID2)}},
+					Name:   aws.String("group-name"),
+					Values: []string{expectedGrpName2}},
 			},
 		}
 		mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedOpts2).Return(nil, fmt.Errorf("Something went wrong")).Once()
@@ -192,20 +194,18 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		secGrps := SecurityGroups{
 			"Group1": &SecurityGroup{
 				SecurityGroup: &types.SecurityGroup{
-					GroupId:   &expectedGrpID1,
 					GroupName: &expectedGrpName1,
 				},
 			},
 			"Group2": &SecurityGroup{
 				SecurityGroup: &types.SecurityGroup{
-					GroupId:   &expectedGrpID2,
 					GroupName: &expectedGrpName2,
 				},
 			},
 		}
 		usedSecGrps, notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI(secGrps)
 		require.Error(t, err)
-		require.EqualError(t, err, "Something went wrong")
+		require.EqualError(t, err, "error describing network interfaces: Something went wrong")
 		assert.Len(t, notUsedSecGrps, 0)
 		assert.Len(t, usedSecGrps, 1)
 

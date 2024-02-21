@@ -19,29 +19,32 @@ func init() {
 func TestAddOrUpdate(t *testing.T) {
 
 	t.Run("Add One New", func(t *testing.T) {
-		expectedName := "Existing"
+		expectedName := "New one"
 		expectedID := "ID"
-		expectedGrp := &types.SecurityGroup{
-			GroupId:   &expectedID,
-			GroupName: &expectedName,
-		}
 
 		grps := SecurityGroups{}
 
-		AddOrUpdate(grps, expectedGrp, "creator", aws.Time(time.Now()), true, []string{})
+		grpToAdd := SecurityGroup{
+			SecurityGroup: &types.SecurityGroup{
+				GroupId:   &expectedID,
+				GroupName: &expectedName,
+			},
+		}
+
+		err := AddOrUpdate(grps, grpToAdd)
+		require.NoError(t, err)
 
 		assert.Len(t, grps, 1)
 		assert.Contains(t, grps, expectedName)
 
 	})
 
-	t.Run("Update Existing", func(t *testing.T) {
+	t.Run("Update Existing (details on target)", func(t *testing.T) {
 		expectedName := "Existing"
 		expectedID := "ID"
-		expectedGrp := &types.SecurityGroup{
-			GroupId:   &expectedID,
-			GroupName: &expectedName,
-		}
+		expectedCreator := "Creator"
+		expecteCreationTime := time.Now().Add(4008 * time.Hour * -1)
+		expectedIFace := "someNetIface"
 
 		grps := SecurityGroups{
 			expectedName: &SecurityGroup{
@@ -49,15 +52,105 @@ func TestAddOrUpdate(t *testing.T) {
 					GroupId:   &expectedID,
 					GroupName: &expectedName,
 				},
-				CreationTime:        aws.Time(time.Now()),
+				CreationTime:        aws.Time(expecteCreationTime),
 				IsUsed:              true,
-				AttachedToNetIfaces: []string{},
+				AttachedToNetIfaces: []string{expectedIFace},
 			},
 		}
 
-		AddOrUpdate(grps, expectedGrp, "creator", aws.Time(time.Now()), true, []string{})
+		grpToAdd := SecurityGroup{
+			SecurityGroup: &types.SecurityGroup{
+				GroupId:   &expectedID,
+				GroupName: &expectedName,
+			},
+			Creator: expectedCreator,
+		}
+
+		err := AddOrUpdate(grps, grpToAdd)
+		require.NoError(t, err)
 		assert.Len(t, grps, 1)
-		assert.Equal(t, "creator", grps[expectedName].Creator)
+		assert.Equal(t, expectedCreator, grps[expectedName].Creator)
+		assert.Equal(t, expecteCreationTime, *grps[expectedName].CreationTime)
+		assert.True(t, grps[expectedName].IsUsed)
+		assert.Contains(t, grps[expectedName].AttachedToNetIfaces, expectedIFace)
+	})
+
+	t.Run("Update Existing (details on src)", func(t *testing.T) {
+		expectedName := "Existing"
+		expectedID := "ID"
+		expectedCreator := "Creator"
+		expecteCreationTime := time.Now().Add(4008 * time.Hour * -1)
+		expectedIFace := "someNetIface"
+
+		grps := SecurityGroups{
+			expectedName: &SecurityGroup{
+				SecurityGroup: &types.SecurityGroup{
+					GroupId:   &expectedID,
+					GroupName: &expectedName,
+				},
+			},
+		}
+
+		grpToAdd := SecurityGroup{
+			SecurityGroup: &types.SecurityGroup{
+				GroupId:   &expectedID,
+				GroupName: &expectedName,
+			},
+			Creator:             expectedCreator,
+			CreationTime:        &expecteCreationTime,
+			IsUsed:              true,
+			AttachedToNetIfaces: []string{expectedIFace},
+		}
+
+		err := AddOrUpdate(grps, grpToAdd)
+		require.NoError(t, err)
+		assert.Len(t, grps, 1)
+		assert.Equal(t, expectedCreator, grps[expectedName].Creator)
+		assert.Equal(t, expecteCreationTime, *grps[expectedName].CreationTime)
+		assert.True(t, grps[expectedName].IsUsed)
+		assert.Contains(t, grps[expectedName].AttachedToNetIfaces, expectedIFace)
+	})
+
+	t.Run("Update Existing (details on src)", func(t *testing.T) {
+		expectedName := "Existing"
+		expectedID := "ID"
+		expectedDescription := "description"
+		expectedCreator := "Creator"
+		expecteCreationTime := time.Now().Add(4008 * time.Hour * -1)
+		expectedIFace := "someNetIface"
+
+		grps := SecurityGroups{
+			expectedName: &SecurityGroup{
+				SecurityGroup: &types.SecurityGroup{
+					GroupId:     &expectedID,
+					GroupName:   &expectedName,
+					Description: &expectedDescription,
+				},
+			},
+		}
+
+		grpToAdd := SecurityGroup{
+			SecurityGroup: &types.SecurityGroup{
+				GroupName: &expectedName,
+			},
+			Creator:             expectedCreator,
+			CreationTime:        &expecteCreationTime,
+			IsUsed:              true,
+			AttachedToNetIfaces: []string{expectedIFace},
+		}
+
+		err := AddOrUpdate(grps, grpToAdd)
+		require.NoError(t, err)
+		assert.Len(t, grps, 1)
+		assert.EqualValues(t, *grps[expectedName].SecurityGroup, types.SecurityGroup{
+			GroupId:     &expectedID,
+			GroupName:   &expectedName,
+			Description: &expectedDescription,
+		})
+		assert.Equal(t, expectedCreator, grps[expectedName].Creator)
+		assert.Equal(t, expecteCreationTime, *grps[expectedName].CreationTime)
+		assert.True(t, grps[expectedName].IsUsed)
+		assert.Contains(t, grps[expectedName].AttachedToNetIfaces, expectedIFace)
 	})
 }
 
@@ -140,11 +233,11 @@ func TestMergeFields(t *testing.T) {
 	expectedCreator := "Creator"
 	expectedCreationTime := time.Now()
 	tblTest := map[string]struct {
-		src *SecurityGroup
+		src SecurityGroup
 		tgt *SecurityGroup
 	}{
 		"simple": {
-			src: &SecurityGroup{
+			src: SecurityGroup{
 				SecurityGroup: &types.SecurityGroup{
 					GroupId:   aws.String(expectedID),
 					GroupName: aws.String(expectedName),
@@ -160,7 +253,7 @@ func TestMergeFields(t *testing.T) {
 			},
 		},
 		"src no id": {
-			src: &SecurityGroup{
+			src: SecurityGroup{
 				SecurityGroup: &types.SecurityGroup{
 					GroupName: aws.String(expectedName),
 				},
@@ -175,7 +268,7 @@ func TestMergeFields(t *testing.T) {
 			},
 		},
 		"tgt no id": {
-			src: &SecurityGroup{
+			src: SecurityGroup{
 				SecurityGroup: &types.SecurityGroup{
 					GroupName: aws.String(expectedName),
 				},
@@ -189,7 +282,7 @@ func TestMergeFields(t *testing.T) {
 			},
 		},
 		"src has no SecGrp detail": {
-			src: &SecurityGroup{
+			src: SecurityGroup{
 				Creator:      expectedCreator,
 				CreationTime: aws.Time(expectedCreationTime),
 			},
@@ -213,7 +306,7 @@ func TestMergeFields(t *testing.T) {
 		expectedID := "1234"
 		expectedName := "Name"
 		expectedCreator := "Creator"
-		src := &SecurityGroup{
+		src := SecurityGroup{
 			SecurityGroup: &types.SecurityGroup{
 				GroupId:   aws.String(expectedID),
 				GroupName: aws.String(expectedName),
@@ -237,7 +330,7 @@ func TestMergeFields(t *testing.T) {
 		expectedName := "Name"
 		doNotUse := time.Now().Add(24 * time.Hour * -1)
 		expectedCreationTime := time.Now()
-		src := &SecurityGroup{
+		src := SecurityGroup{
 			SecurityGroup: &types.SecurityGroup{
 				GroupId:   aws.String(expectedID),
 				GroupName: aws.String(expectedName),
@@ -261,7 +354,7 @@ func TestMergeFields(t *testing.T) {
 		expectedName := "Name"
 		defaultCreationtime := time.Time{}
 		expectedCreationTime := time.Now()
-		src := &SecurityGroup{
+		src := SecurityGroup{
 			SecurityGroup: &types.SecurityGroup{
 				GroupId:   aws.String(expectedID),
 				GroupName: aws.String(expectedName),
@@ -283,7 +376,7 @@ func TestMergeFields(t *testing.T) {
 	t.Run("No CreationTime so set default", func(t *testing.T) {
 		expectedID := "1234"
 		expectedName := "Name"
-		src := &SecurityGroup{
+		src := SecurityGroup{
 			SecurityGroup: &types.SecurityGroup{
 				GroupId:   aws.String(expectedID),
 				GroupName: aws.String(expectedName),
@@ -305,7 +398,7 @@ func TestMergeFields(t *testing.T) {
 		expectedID2 := "1234"
 		expectedName := "Name"
 		expectedName2 := "Name2"
-		src := &SecurityGroup{
+		src := SecurityGroup{
 			SecurityGroup: &types.SecurityGroup{
 				GroupId:   aws.String(expectedID),
 				GroupName: aws.String(expectedName),
@@ -323,7 +416,7 @@ func TestMergeFields(t *testing.T) {
 	})
 
 	t.Run("No SecurityGroup Details", func(t *testing.T) {
-		src := &SecurityGroup{}
+		src := SecurityGroup{}
 		tgt := &SecurityGroup{}
 		err := mergeFields(src, tgt)
 		require.Error(t, err)
