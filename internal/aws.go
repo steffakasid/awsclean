@@ -84,7 +84,6 @@ func (a *AWS) GetSecurityGroups(secGrps SecurityGroups) (SecurityGroups, error) 
 		}
 
 		for _, secGrp := range out.SecurityGroups {
-
 			AddOrUpdate(secGrpsRet, &secGrp, "", nil, true, []string{})
 		}
 
@@ -105,21 +104,25 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used SecurityGro
 
 	for _, secGrp := range secGrps {
 
+		filter := fmt.Sprintf("%s", *secGrp.SecurityGroup.GroupName)
+		extendedslog.Logger.Debugf("GetNotUsedSecGrpsFromENI(): filter %s", filter)
+
 		in := &ec2.DescribeNetworkInterfacesInput{
 			Filters: []ec2Types.Filter{
 				{
-					Values: []string{fmt.Sprintf("Name=%s", *secGrp.SecurityGroup.GroupId)},
+					Name:   aws.String("group-name"),
+					Values: []string{filter},
 				},
 			},
 		}
 
 		out, err := a.ec2.DescribeNetworkInterfaces(context.TODO(), in)
-		CheckError(err, extendedslog.Logger.Debugf)
 		if nil != err {
-			return used, unused, err
+			return used, unused, fmt.Errorf("error describing network interfaces: %w", err)
 		}
+
 		if len(out.NetworkInterfaces) == 0 {
-			extendedslog.Logger.Debug("No ENI attached to group with ID: ", *secGrp.SecurityGroup.GroupId, secGrp.SecurityGroup.GroupName)
+			extendedslog.Logger.Debug("No ENI attached to group with Name: ", secGrp.SecurityGroup.GroupName)
 			AddOrUpdate(unused, secGrp.SecurityGroup, secGrp.Creator, secGrp.CreationTime, false, []string{})
 		}
 		if len(out.NetworkInterfaces) > 0 {
@@ -174,10 +177,13 @@ func (a AWS) GetCloudTrailForSecGroups(startTime, endTime time.Time) SecurityGro
 		if out != nil {
 			for _, ev := range out.Events {
 				for _, res := range ev.Resources {
+					// TODO: needs unit testing
+					if *res.ResourceType == "AWS::EC2::SecurityGroup" {
+						AddOrUpdate(secGrps, &ec2Types.SecurityGroup{GroupName: res.ResourceName}, *ev.Username, ev.EventTime, true, []string{})
 
-					AddOrUpdate(secGrps, &ec2Types.SecurityGroup{GroupName: res.ResourceName}, *ev.Username, ev.EventTime, true, []string{})
+						extendedslog.Logger.Debug("Adding ressource", *res.ResourceName, *res.ResourceType)
+					}
 
-					extendedslog.Logger.Debug("Adding ressource", *res.ResourceName, *res.ResourceType)
 				}
 			}
 		}

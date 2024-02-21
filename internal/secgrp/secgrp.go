@@ -32,6 +32,7 @@ func NewInstance(awsClient *internal.AWS, olderthen *time.Duration, dryrun, only
 func (sec *SecGrp) GetSecurityGroups(startTime, endTime time.Time) error {
 	ninetyDayOffset, _ := str2duration.ParseDuration("90d")
 
+	extendedslog.Logger.Debug("GetCloudTrailForSecGroups")
 	secGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(startTime, endTime)
 
 	// if startTime is before 90d in past we want to get additional SecurityGroups which are not in CloudTrail
@@ -40,20 +41,22 @@ func (sec *SecGrp) GetSecurityGroups(startTime, endTime time.Time) error {
 		filterSecGrps = secGrpsFromCCTrail
 	}
 
+	extendedslog.Logger.Debug("GetSecurityGroups")
 	secGrps, err := sec.awsClient.GetSecurityGroups(filterSecGrps)
-	internal.AppendAll(secGrpsFromCCTrail, secGrps)
 
 	if nil != err {
-		return fmt.Errorf("could not get SecurityGroups: %w", err)
+		return fmt.Errorf("could not getSecurityGroups: %w", err)
 	}
+	internal.AppendAll(secGrpsFromCCTrail, secGrps)
 
 	if sec.onlyUnused || sec.olderthen != nil {
+		extendedslog.Logger.Debug("GetNotUsedSecGrpsFromENI")
 		sec.usedSecGrps, sec.unusedSecGrps, err = sec.awsClient.GetNotUsedSecGrpsFromENI(secGrps)
-		if nil != err {
-			return fmt.Errorf("could not get not used SecurityGroups from ENIs: %w", err)
+		if err != nil {
+			return fmt.Errorf("could not get GetNotUsedSecGrpsFromENI() %w", err)
 		}
-		return nil
 	}
+	extendedslog.Logger.Debug("secgrp.go GetSecurityGroups returning no error")
 	return nil
 }
 
@@ -76,7 +79,7 @@ func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time) error {
 			}
 		}
 	} else {
-		// Iguess trying to delete used SwcurityGroups will not work. So Idid not implement it
+		// I guess trying to delete used SwcurityGroups will not work. So Idid not implement it
 	}
 	return nil
 }
@@ -84,9 +87,11 @@ func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time) error {
 func (sec SecGrp) GetAllSecurityGroups() internal.SecurityGroups {
 	all := internal.SecurityGroups{}
 
+	extendedslog.Logger.Debug("GetAllSecurityGroups append unused")
 	internal.AppendAll(sec.unusedSecGrps, all)
 
 	if !sec.onlyUnused {
+		extendedslog.Logger.Debug("GetAllSecurityGroups append used")
 		internal.AppendAll(sec.usedSecGrps, all)
 	}
 

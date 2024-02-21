@@ -138,3 +138,10 @@ func initConfig() {
 	err := extendedslog.Logger.SetLogLevel(viper.GetString(debugFlag))
 	extendedslog.Logger.Error(err)
 }
+
+func nilCheck(tocheck *string) string {
+	if tocheck == nil {
+		return "nil"
+	}
+	return *tocheck
+}

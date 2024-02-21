@@ -152,7 +152,12 @@ func secGrpPrintTable(grps internal.SecurityGroups) {
 	grpsTable := table.New("ID", "Name", "Creation Datetime", "IsUsed")
 	for _, grp := range grps {
 		// TODO: conditionally add tags here.
-		grpsTable.AddRow(grp.SecurityGroup.GroupId, grp.SecurityGroup.GroupName, grp.CreationTime.Format(time.RFC3339), grp.IsUsed)
+		if grp.SecurityGroup != nil {
+			if grp.CreationTime == nil {
+				grp.CreationTime = &time.Time{}
+			}
+			grpsTable.AddRow(nilCheck(grp.SecurityGroup.GroupId), nilCheck(grp.SecurityGroup.GroupName), grp.CreationTime.Format(time.RFC3339), grp.IsUsed)
+		}
 	}
 	grpsTable.Print()
 }

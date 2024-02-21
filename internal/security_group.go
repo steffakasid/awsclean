@@ -20,7 +20,7 @@ type SecurityGroups = map[string]*SecurityGroup
 
 func AddOrUpdate(grps SecurityGroups, grpDetail *ec2Types.SecurityGroup, creator string, creationTime *time.Time, isUsed bool, netIfaces []string) {
 
-	if grp, isMapContainsKey := grps[*grpDetail.GroupName]; isMapContainsKey {
+	if grp, exists := grps[*grpDetail.GroupName]; exists {
 
 		src := &SecurityGroup{
 			SecurityGroup:       grpDetail,
@@ -31,7 +31,9 @@ func AddOrUpdate(grps SecurityGroups, grpDetail *ec2Types.SecurityGroup, creator
 		}
 
 		err := mergeFields(src, grp)
-		CheckError(err, extendedslog.Logger.Errorf)
+		if err != nil {
+			extendedslog.Logger.Error(fmt.Errorf("error in AddOrUpdate(): %w", err))
+		}
 
 	} else {
 		grps[*grpDetail.GroupName] = &SecurityGroup{
@@ -47,9 +49,10 @@ func AddOrUpdate(grps SecurityGroups, grpDetail *ec2Types.SecurityGroup, creator
 func AppendAll(src, target SecurityGroups) {
 	for key, val := range src {
 		if tgtObj, exists := target[key]; exists {
+			extendedslog.Logger.Debugf("Merge %v with %v", *val.SecurityGroup.GroupName, *tgtObj.SecurityGroup.GroupName)
 			err := mergeFields(val, tgtObj)
 			if err != nil {
-				extendedslog.Logger.Error(err)
+				extendedslog.Logger.Error(fmt.Errorf("error in AppendAll(): %w", err))
 			}
 			target[key] = tgtObj
 		} else {
@@ -61,7 +64,7 @@ func AppendAll(src, target SecurityGroups) {
 func mergeFields(src, tgt *SecurityGroup) error {
 
 	if src.SecurityGroup == nil && tgt.SecurityGroup == nil {
-		return fmt.Errorf("error mergig SecurityGroups. Both objects have obj.SecurityGroup = nil")
+		return fmt.Errorf("error mergin SecurityGroups. Both objects have obj.SecurityGroup = nil")
 	}
 
 	if src.SecurityGroup != tgt.SecurityGroup {
@@ -73,10 +76,17 @@ func mergeFields(src, tgt *SecurityGroup) error {
 			// do not merge objects...
 		}
 
-		// We use GroupName instead of GroupID becauce from CloudTrail we only get the name
-		if src.SecurityGroup != nil && *src.SecurityGroup.GroupName != *tgt.SecurityGroup.GroupName {
-			return fmt.Errorf("error mergig SecurityGroups: %s != %s", *src.SecurityGroup.GroupName, *tgt.SecurityGroup.GroupName)
+		if src.SecurityGroup != nil &&
+			src.SecurityGroup.GroupId != nil &&
+			tgt.SecurityGroup.GroupId != nil &&
+			*src.SecurityGroup.GroupId != *tgt.SecurityGroup.GroupId {
+			return fmt.Errorf("error mergin SecurityGroups: %s != %s", *src.SecurityGroup.GroupId, *tgt.SecurityGroup.GroupId)
 		}
+	}
+
+	// if GroupName not set this should mean other fields are also not set so we overwrite with src.
+	if tgt.SecurityGroup != nil && tgt.SecurityGroup.GroupName == nil && src.SecurityGroup.GroupName != nil {
+		tgt.SecurityGroup = src.SecurityGroup
 	}
 
 	if src.Creator != "" && tgt.Creator == "" {
