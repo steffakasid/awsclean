@@ -122,7 +122,7 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used SecurityGro
 		}
 
 		if len(out.NetworkInterfaces) == 0 {
-			extendedslog.Logger.Debug("No ENI attached to group with Name: ", secGrp.SecurityGroup.GroupName)
+			extendedslog.Logger.Debugf("No ENI attached to group with Name: %s", *secGrp.SecurityGroup.GroupName)
 			AddOrUpdate(unused, secGrp.SecurityGroup, secGrp.Creator, secGrp.CreationTime, false, []string{})
 		}
 		if len(out.NetworkInterfaces) > 0 {

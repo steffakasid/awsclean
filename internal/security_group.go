@@ -61,6 +61,7 @@ func AppendAll(src, target SecurityGroups) {
 	}
 }
 
+// Basically add details from src to tgt.
 func mergeFields(src, tgt *SecurityGroup) error {
 
 	if src.SecurityGroup == nil && tgt.SecurityGroup == nil {
@@ -77,15 +78,17 @@ func mergeFields(src, tgt *SecurityGroup) error {
 		}
 
 		if src.SecurityGroup != nil &&
-			src.SecurityGroup.GroupId != nil &&
-			tgt.SecurityGroup.GroupId != nil &&
-			*src.SecurityGroup.GroupId != *tgt.SecurityGroup.GroupId {
-			return fmt.Errorf("error mergin SecurityGroups: %s != %s", *src.SecurityGroup.GroupId, *tgt.SecurityGroup.GroupId)
+			src.SecurityGroup.GroupName != nil &&
+			tgt.SecurityGroup.GroupName != nil &&
+			*src.SecurityGroup.GroupName != *tgt.SecurityGroup.GroupName {
+			return fmt.Errorf("error mergin SecurityGroups: %s != %s", *src.SecurityGroup.GroupName, *tgt.SecurityGroup.GroupName)
 		}
 	}
 
 	// if GroupName not set this should mean other fields are also not set so we overwrite with src.
-	if tgt.SecurityGroup != nil && tgt.SecurityGroup.GroupName == nil && src.SecurityGroup.GroupName != nil {
+	if tgt.SecurityGroup != nil &&
+		tgt.SecurityGroup.GroupName == nil &&
+		src.SecurityGroup.GroupName != nil {
 		tgt.SecurityGroup = src.SecurityGroup
 	}
 
@@ -93,8 +96,17 @@ func mergeFields(src, tgt *SecurityGroup) error {
 		tgt.Creator = src.Creator
 	}
 
-	if src.CreationTime != nil && tgt.CreationTime == nil {
+	// Todo: needs testing
+	if src.CreationTime != nil &&
+		(tgt.CreationTime == nil || tgt.CreationTime.Compare(time.Time{}) == 0) {
 		tgt.CreationTime = src.CreationTime
+	} else if src.CreationTime == nil &&
+		tgt.CreationTime == nil {
+		tgt.CreationTime = &time.Time{}
+	}
+
+	if src.IsUsed && !tgt.IsUsed {
+		tgt.IsUsed = src.IsUsed
 	}
 
 	if len(src.AttachedToNetIfaces) > 0 && len(tgt.AttachedToNetIfaces) == 0 {
