@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -18,39 +19,35 @@ type SecurityGroup struct {
 
 type SecurityGroups = map[string]*SecurityGroup
 
-func AddOrUpdate(grps SecurityGroups, grpDetail *ec2Types.SecurityGroup, creator string, creationTime *time.Time, isUsed bool, netIfaces []string) {
+func AddOrUpdate(grps SecurityGroups, grpToAdd SecurityGroup) error {
 
-	if grp, exists := grps[*grpDetail.GroupName]; exists {
+	if grpToAdd.SecurityGroup == nil {
+		return errors.New("AddOrUpdate() grpToAdd.SecurityGroup is nil")
+	}
+	if grpToAdd.SecurityGroup.GroupName == nil {
+		return errors.New("AddOrUpdate() grpToAdd.SecurityGroup.GroupName is nil")
+	}
 
-		src := &SecurityGroup{
-			SecurityGroup:       grpDetail,
-			Creator:             creator,
-			CreationTime:        creationTime,
-			IsUsed:              isUsed,
-			AttachedToNetIfaces: netIfaces,
-		}
+	groupName := *grpToAdd.SecurityGroup.GroupName
 
-		err := mergeFields(src, grp)
+	if grp, exists := grps[groupName]; exists {
+
+		err := mergeFields(grpToAdd, grp)
 		if err != nil {
 			extendedslog.Logger.Error(fmt.Errorf("error in AddOrUpdate(): %w", err))
 		}
 
 	} else {
-		grps[*grpDetail.GroupName] = &SecurityGroup{
-			SecurityGroup:       grpDetail,
-			CreationTime:        creationTime,
-			Creator:             creator,
-			IsUsed:              isUsed,
-			AttachedToNetIfaces: netIfaces,
-		}
+		grps[groupName] = &grpToAdd
 	}
+	return nil
 }
 
 func AppendAll(src, target SecurityGroups) {
 	for key, val := range src {
 		if tgtObj, exists := target[key]; exists {
 			extendedslog.Logger.Debugf("Merge %v with %v", *val.SecurityGroup.GroupName, *tgtObj.SecurityGroup.GroupName)
-			err := mergeFields(val, tgtObj)
+			err := mergeFields(*val, tgtObj)
 			if err != nil {
 				extendedslog.Logger.Error(fmt.Errorf("error in AppendAll(): %w", err))
 			}
@@ -62,7 +59,7 @@ func AppendAll(src, target SecurityGroups) {
 }
 
 // Basically add details from src to tgt.
-func mergeFields(src, tgt *SecurityGroup) error {
+func mergeFields(src SecurityGroup, tgt *SecurityGroup) error {
 
 	if src.SecurityGroup == nil && tgt.SecurityGroup == nil {
 		return fmt.Errorf("error mergin SecurityGroups. Both objects have obj.SecurityGroup = nil")

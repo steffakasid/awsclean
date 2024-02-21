@@ -84,7 +84,10 @@ func (a *AWS) GetSecurityGroups(secGrps SecurityGroups) (SecurityGroups, error) 
 		}
 
 		for _, secGrp := range out.SecurityGroups {
-			AddOrUpdate(secGrpsRet, &secGrp, "", nil, true, []string{})
+			err := AddOrUpdate(secGrpsRet, SecurityGroup{
+				SecurityGroup: &secGrp,
+			})
+			extendedslog.Logger.Error(fmt.Errorf("GetSecurityGroups() AddOrUpdate failed %w", err))
 		}
 
 		if out.NextToken != nil {
@@ -104,7 +107,7 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used SecurityGro
 
 	for _, secGrp := range secGrps {
 
-		filter := fmt.Sprintf("%s", *secGrp.SecurityGroup.GroupName)
+		filter := *secGrp.SecurityGroup.GroupName
 		extendedslog.Logger.Debugf("GetNotUsedSecGrpsFromENI(): filter %s", filter)
 
 		in := &ec2.DescribeNetworkInterfacesInput{
@@ -123,14 +126,19 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used SecurityGro
 
 		if len(out.NetworkInterfaces) == 0 {
 			extendedslog.Logger.Debugf("No ENI attached to group with Name: %s", *secGrp.SecurityGroup.GroupName)
-			AddOrUpdate(unused, secGrp.SecurityGroup, secGrp.Creator, secGrp.CreationTime, false, []string{})
+			err := AddOrUpdate(unused, *secGrp)
+			extendedslog.Logger.Error(fmt.Errorf("GetNotUsedSecGrpFromENI() AddOrUpdate() of unused SecGrp failed: %w", err))
 		}
 		if len(out.NetworkInterfaces) > 0 {
 			attachedIfaces := []string{}
 			for _, iface := range out.NetworkInterfaces {
 				attachedIfaces = append(attachedIfaces, *iface.NetworkInterfaceId)
 			}
-			AddOrUpdate(used, secGrp.SecurityGroup, secGrp.Creator, secGrp.CreationTime, true, attachedIfaces)
+			secGrp.IsUsed = true
+			secGrp.AttachedToNetIfaces = attachedIfaces
+			err := AddOrUpdate(used, *secGrp)
+			extendedslog.Logger.Error(fmt.Errorf("GetNotUsedSecGrpFromENI() AddOrUpdate() of used SecGrp failed: %w", err))
+
 		}
 	}
 	return used, unused, nil
@@ -179,7 +187,13 @@ func (a AWS) GetCloudTrailForSecGroups(startTime, endTime time.Time) SecurityGro
 				for _, res := range ev.Resources {
 					// TODO: needs unit testing
 					if *res.ResourceType == "AWS::EC2::SecurityGroup" {
-						AddOrUpdate(secGrps, &ec2Types.SecurityGroup{GroupName: res.ResourceName}, *ev.Username, ev.EventTime, true, []string{})
+						secGrp := SecurityGroup{
+							SecurityGroup: &ec2Types.SecurityGroup{GroupName: res.ResourceName},
+							Creator:       *ev.Username,
+							CreationTime:  ev.EventTime,
+						}
+						err := AddOrUpdate(secGrps, secGrp)
+						extendedslog.Logger.Error(fmt.Errorf("GetCloudTrailForSecGroups() AddOrUpdate() failed: %w", err))
 
 						extendedslog.Logger.Debug("Adding ressource", *res.ResourceName, *res.ResourceType)
 					}
