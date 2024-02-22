@@ -86,6 +86,7 @@ func mergeFields(src SecurityGroup, tgt *SecurityGroup) error {
 
 	// if GroupId not set this should mean other fields are also not set so we overwrite with src.
 	if tgt.SecurityGroup != nil &&
+		src.SecurityGroup != nil &&
 		tgt.SecurityGroup.GroupId == nil &&
 		src.SecurityGroup.GroupId != nil {
 		tgt.SecurityGroup = src.SecurityGroup

@@ -5,8 +5,8 @@ go 1.21.7
 require (
 	github.com/aws/aws-sdk-go-v2 v1.25.1
 	github.com/aws/aws-sdk-go-v2/config v1.27.2
-	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.37.3
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.148.2
+	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.37.1
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.148.0
 	github.com/aws/smithy-go v1.20.1
 	github.com/google/uuid v1.6.0
 	github.com/rodaine/table v1.1.1

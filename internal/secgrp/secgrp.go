@@ -2,6 +2,7 @@ package secgrp
 
 import (
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/steffakasid/awsclean/internal"
@@ -32,12 +33,13 @@ func (sec *SecGrp) GetSecurityGroups(startTime, endTime time.Time) error {
 	ninetyDayOffset := internal.ParseDuration("90d")
 
 	extendedslog.Logger.Debug("GetCloudTrailForSecGroups")
-	secGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(startTime, endTime)
+	CreatedsecGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(internal.SECURITYGROUP_CREATED, startTime, endTime)
+	DeletededSecGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(internal.SECURITYGROUP_DELETED, startTime, endTime)
 
 	// if startTime is before 90d in past we want to get additional SecurityGroups which are not in CloudTrail
 	filterSecGrps := internal.SecurityGroups{}
 	if startTime.After(time.Now().Add(ninetyDayOffset * -1)) {
-		filterSecGrps = secGrpsFromCCTrail
+		filterSecGrps = CreatedsecGrpsFromCCTrail
 	}
 
 	extendedslog.Logger.Debug("GetSecurityGroups")
@@ -46,7 +48,7 @@ func (sec *SecGrp) GetSecurityGroups(startTime, endTime time.Time) error {
 	if nil != err {
 		return fmt.Errorf("could not getSecurityGroups: %w", err)
 	}
-	internal.AppendAll(secGrpsFromCCTrail, secGrps)
+	internal.AppendAll(CreatedsecGrpsFromCCTrail, secGrps)
 
 	if sec.onlyUnused || sec.olderthen != nil {
 		extendedslog.Logger.Debug("GetNotUsedSecGrpsFromENI")
@@ -55,6 +57,17 @@ func (sec *SecGrp) GetSecurityGroups(startTime, endTime time.Time) error {
 			return fmt.Errorf("could not get GetNotUsedSecGrpsFromENI() %w", err)
 		}
 	}
+	maps.DeleteFunc(secGrps, func(k string, v *internal.SecurityGroup) bool {
+		// keys are the SecurityGroupNames
+		// so we delete if k is in DeletededsecGrpsFromCCTrail
+		for key := range DeletededSecGrpsFromCCTrail {
+			if key == k {
+				return true
+			}
+		}
+		return false
+	})
+
 	extendedslog.Logger.Debug("secgrp.go GetSecurityGroups returning no error")
 	return nil
 }

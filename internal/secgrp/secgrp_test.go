@@ -46,54 +46,9 @@ func TestGetSecurityGroups(t *testing.T) {
 
 		SUT, ec2Mock, cloudTrailMock := setupSUT(t, nil, dryrun, unused)
 
-		expectedLookupEventsIn := &cloudtrail.LookupEventsInput{
-			StartTime: &expectedStarttime,
-			EndTime:   &expectedEndtime,
-			LookupAttributes: []cloudtrailTypes.LookupAttribute{
-				{
-					AttributeKey:   cloudtrailTypes.LookupAttributeKeyEventName,
-					AttributeValue: aws.String("CreateSecurityGroup"),
-				},
-			},
-		}
-		cloudTrailMock.EXPECT().LookupEvents(context.TODO(), expectedLookupEventsIn).Return(&cloudtrail.LookupEventsOutput{
-			Events: []cloudtrailTypes.Event{
-				{
-					EventTime: aws.Time(time.Now()),
-					Username:  aws.String("username"),
-					Resources: []cloudtrailTypes.Resource{
-						{
-							ResourceName: aws.String(expectedSecGrpName),
-							ResourceType: aws.String("AWS::EC2::SecurityGroup"),
-						},
-					},
-				},
-			},
-		}, nil).Once()
-
-		expectedDescribeSecGrpsOpts := &ec2.DescribeSecurityGroupsInput{
-			MaxResults: aws.Int32(100),
-		}
-		expectedDescribeSecGrpsOut := &ec2.DescribeSecurityGroupsOutput{
-			SecurityGroups: []ec2Types.SecurityGroup{
-				{
-					GroupId:   aws.String(expectedSecGrpID),
-					GroupName: aws.String(expectedSecGrpName),
-				},
-			},
-		}
-
-		ec2Mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedDescribeSecGrpsOpts).Return(expectedDescribeSecGrpsOut, nil).Once()
-
-		expectedDescribeNetIfaceOpts := &ec2.DescribeNetworkInterfacesInput{
-			Filters: []ec2Types.Filter{
-				{
-					Name:   aws.String("group-name"),
-					Values: []string{expectedSecGrpName}},
-			},
-		}
-		expectedDescribeNetIfaceOut := &ec2.DescribeNetworkInterfacesOutput{}
-		ec2Mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedDescribeNetIfaceOpts).Return(expectedDescribeNetIfaceOut, nil).Once()
+		mockLookupEvents(cloudTrailMock, expectedStarttime, expectedEndtime, time.Now(), expectedSecGrpName)
+		mockDescribeSecGrps(ec2Mock, expectedSecGrpID, expectedSecGrpName)
+		mockDescribeNetIfaces(ec2Mock, expectedSecGrpName)
 
 		err = SUT.GetSecurityGroups(expectedStarttime, expectedEndtime)
 		require.NoError(t, err)
@@ -106,7 +61,6 @@ func TestGetSecurityGroups(t *testing.T) {
 	t.Run("Success Get Created 8d Ago", func(t *testing.T) {
 		expectedSecGrpID := "6987698-1243"
 		expectedSecGrpName := "abcde-secgrp"
-		// TODO: how to get close to time.Now???
 		expectedEndtime := time.Now()
 		eightDayOffset, err := str2duration.ParseDuration("8d")
 		require.NoError(t, err)
@@ -117,56 +71,9 @@ func TestGetSecurityGroups(t *testing.T) {
 
 		SUT, ec2Mock, cloudTrailMock := setupSUT(t, nil, dryrun, unused)
 
-		expectedLookupEventsIn := &cloudtrail.LookupEventsInput{
-			StartTime: &expectedStarttime,
-			EndTime:   &expectedEndtime,
-			LookupAttributes: []cloudtrailTypes.LookupAttribute{
-				{
-					AttributeKey:   cloudtrailTypes.LookupAttributeKeyEventName,
-					AttributeValue: aws.String("CreateSecurityGroup"),
-				},
-			},
-		}
-		cloudTrailMock.EXPECT().LookupEvents(context.TODO(), expectedLookupEventsIn).Return(&cloudtrail.LookupEventsOutput{
-			Events: []cloudtrailTypes.Event{
-				{
-					EventTime: aws.Time(time.Now()),
-					Username:  aws.String("username"),
-					Resources: []cloudtrailTypes.Resource{
-						{
-							ResourceName: aws.String(expectedSecGrpName),
-							ResourceType: aws.String("AWS::EC2::SecurityGroup"),
-						},
-					},
-				},
-			},
-		}, nil).Once()
-
-		expectedDescribeSecGrpsOpts := &ec2.DescribeSecurityGroupsInput{
-			MaxResults: aws.Int32(100),
-			GroupNames: []string{expectedSecGrpName},
-		}
-		expectedDescribeSecGrpsOut := &ec2.DescribeSecurityGroupsOutput{
-			SecurityGroups: []ec2Types.SecurityGroup{
-				{
-					GroupId:   aws.String(expectedSecGrpID),
-					GroupName: aws.String(expectedSecGrpName),
-				},
-			},
-		}
-
-		ec2Mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedDescribeSecGrpsOpts).Return(expectedDescribeSecGrpsOut, nil).Once()
-
-		expectedDescribeNetIfaceOpts := &ec2.DescribeNetworkInterfacesInput{
-			Filters: []ec2Types.Filter{
-				{
-					Name:   aws.String("group-name"),
-					Values: []string{expectedSecGrpName},
-				},
-			},
-		}
-		expectedDescribeNetIfaceOut := &ec2.DescribeNetworkInterfacesOutput{}
-		ec2Mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedDescribeNetIfaceOpts).Return(expectedDescribeNetIfaceOut, nil).Once()
+		mockLookupEvents(cloudTrailMock, expectedStarttime, expectedEndtime, time.Now(), expectedSecGrpName)
+		mockDescribeSecGrps(ec2Mock, expectedSecGrpID, expectedSecGrpName)
+		mockDescribeNetIfaces(ec2Mock, expectedSecGrpName)
 
 		err = SUT.GetSecurityGroups(expectedStarttime, expectedEndtime)
 		require.NoError(t, err)
@@ -175,7 +82,6 @@ func TestGetSecurityGroups(t *testing.T) {
 		assert.Len(t, SUT.usedSecGrps, 0)
 		assert.Contains(t, SUT.unusedSecGrps, expectedSecGrpName)
 		assert.Equal(t, "username", SUT.unusedSecGrps[expectedSecGrpName].Creator)
-
 	})
 }
 
@@ -193,40 +99,9 @@ func TestDeleteSecurityGroups(t *testing.T) {
 
 		SUT, ec2Mock, cloudTrailMock := setupSUT(t, nil, dryrun, onlyUnused)
 
-		expectedLookupEventsIn := &cloudtrail.LookupEventsInput{
-			StartTime: &expectedStarttime,
-			EndTime:   &expectedEndtime,
-			LookupAttributes: []cloudtrailTypes.LookupAttribute{
-				{
-					AttributeKey:   cloudtrailTypes.LookupAttributeKeyEventName,
-					AttributeValue: aws.String("CreateSecurityGroup"),
-				},
-			},
-		}
-		cloudTrailMock.EXPECT().LookupEvents(context.TODO(), expectedLookupEventsIn).Return(&cloudtrail.LookupEventsOutput{}, nil).Once()
-		expectedDescribeSecGrpsOpts := &ec2.DescribeSecurityGroupsInput{
-			MaxResults: aws.Int32(100),
-		}
-		expectedDescribeSecGrpsOut := &ec2.DescribeSecurityGroupsOutput{
-			SecurityGroups: []ec2Types.SecurityGroup{
-				{
-					GroupId:   aws.String(expectedSecGrpID),
-					GroupName: aws.String(expectedSecGrpName),
-				},
-			},
-		}
-		ec2Mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedDescribeSecGrpsOpts).Return(expectedDescribeSecGrpsOut, nil).Once()
-
-		expectedDescribeNetIfaceOpts := &ec2.DescribeNetworkInterfacesInput{
-			Filters: []ec2Types.Filter{
-				{
-					Name:   aws.String("group-name"),
-					Values: []string{expectedSecGrpName},
-				},
-			},
-		}
-		expectedDescribeNetIfaceOut := &ec2.DescribeNetworkInterfacesOutput{}
-		ec2Mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedDescribeNetIfaceOpts).Return(expectedDescribeNetIfaceOut, nil).Once()
+		mockLookupEvents(cloudTrailMock, expectedStarttime, expectedEndtime, time.Now(), expectedSecGrpName)
+		mockDescribeSecGrps(ec2Mock, expectedSecGrpID, expectedSecGrpName)
+		mockDescribeNetIfaces(ec2Mock, expectedSecGrpName)
 
 		expectedDeleteSecGrpOpts := &ec2.DeleteSecurityGroupInput{
 			DryRun:  &dryrun,
@@ -254,54 +129,9 @@ func TestDeleteSecurityGroups(t *testing.T) {
 
 		SUT, ec2Mock, cloudTrailMock := setupSUT(t, &olderthen, dryrun, onlyUnused)
 
-		expectedLookupEventsIn := &cloudtrail.LookupEventsInput{
-			StartTime: &expectedStarttime,
-			EndTime:   &expectedEndtime,
-			LookupAttributes: []cloudtrailTypes.LookupAttribute{
-				{
-					AttributeKey:   cloudtrailTypes.LookupAttributeKeyEventName,
-					AttributeValue: aws.String("CreateSecurityGroup"),
-				},
-			},
-		}
-		cloudTrailMock.EXPECT().LookupEvents(context.TODO(), expectedLookupEventsIn).Return(&cloudtrail.LookupEventsOutput{
-			Events: []cloudtrailTypes.Event{
-				{
-					EventTime: aws.Time(time.Now().Add(olderthen * -1)),
-					Username:  aws.String("username"),
-					Resources: []cloudtrailTypes.Resource{
-						{
-							ResourceName: aws.String(expectedSecGrpName),
-							ResourceType: aws.String("SecurityGroup"),
-						},
-					},
-				},
-			},
-		}, nil).Once()
-
-		expectedDescribeSecGrpsOpts := &ec2.DescribeSecurityGroupsInput{
-			MaxResults: aws.Int32(100),
-		}
-		expectedDescribeSecGrpsOut := &ec2.DescribeSecurityGroupsOutput{
-			SecurityGroups: []ec2Types.SecurityGroup{
-				{
-					GroupId:   aws.String(expectedSecGrpID),
-					GroupName: aws.String(expectedSecGrpName),
-				},
-			},
-		}
-		ec2Mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedDescribeSecGrpsOpts).Return(expectedDescribeSecGrpsOut, nil).Once()
-
-		expectedDescribeNetIfaceOpts := &ec2.DescribeNetworkInterfacesInput{
-			Filters: []ec2Types.Filter{
-				{
-					Name:   aws.String("group-name"),
-					Values: []string{expectedSecGrpName},
-				},
-			},
-		}
-		expectedDescribeNetIfaceOut := &ec2.DescribeNetworkInterfacesOutput{}
-		ec2Mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedDescribeNetIfaceOpts).Return(expectedDescribeNetIfaceOut, nil).Once()
+		mockLookupEvents(cloudTrailMock, expectedStarttime, expectedEndtime, time.Now().Add(olderthen*-1), expectedSecGrpName)
+		mockDescribeSecGrps(ec2Mock, expectedSecGrpID, expectedSecGrpName)
+		mockDescribeNetIfaces(ec2Mock, expectedSecGrpName)
 
 		expectedDeleteSecGrpOpts := &ec2.DeleteSecurityGroupInput{
 			DryRun:  &dryrun,
@@ -315,5 +145,89 @@ func TestDeleteSecurityGroups(t *testing.T) {
 		ec2Mock.AssertExpectations(t)
 		cloudTrailMock.AssertExpectations(t)
 	})
+}
 
+func mockDescribeNetIfaces(ec2Mock *mocks.MockEc2client,
+	expectedSecGrpName string) {
+	expectedDescribeNetIfaceOpts := &ec2.DescribeNetworkInterfacesInput{
+		Filters: []ec2Types.Filter{
+			{
+				Name:   aws.String("group-name"),
+				Values: []string{expectedSecGrpName},
+			},
+		},
+	}
+	expectedDescribeNetIfaceOut := &ec2.DescribeNetworkInterfacesOutput{}
+	ec2Mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), expectedDescribeNetIfaceOpts).Return(expectedDescribeNetIfaceOut, nil).Once()
+}
+
+func mockDescribeSecGrps(ec2Mock *mocks.MockEc2client,
+	expectedSecGrpID, expectedSecGrpName string) {
+	expectedDescribeSecGrpsOpts := &ec2.DescribeSecurityGroupsInput{
+		MaxResults: aws.Int32(100),
+	}
+	expectedDescribeSecGrpsOut := &ec2.DescribeSecurityGroupsOutput{
+		SecurityGroups: []ec2Types.SecurityGroup{
+			{
+				GroupId:   aws.String(expectedSecGrpID),
+				GroupName: aws.String(expectedSecGrpName),
+			},
+		},
+	}
+	ec2Mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedDescribeSecGrpsOpts).Return(expectedDescribeSecGrpsOut, nil).Once()
+}
+
+func mockLookupEvents(cloudTrailMock *mocks.MockCloudTrail,
+	expectedStarttime, expectedEndtime, expectedEventDatetime time.Time,
+	expectedSecGrpName string) {
+	expectedLookupEventsIn := &cloudtrail.LookupEventsInput{
+		StartTime: &expectedStarttime,
+		EndTime:   &expectedEndtime,
+		LookupAttributes: []cloudtrailTypes.LookupAttribute{
+			{
+				AttributeKey:   cloudtrailTypes.LookupAttributeKeyEventName,
+				AttributeValue: aws.String(string(internal.SECURITYGROUP_CREATED)),
+			},
+		},
+	}
+	expectedLookupEventsOut := &cloudtrail.LookupEventsOutput{
+		Events: []cloudtrailTypes.Event{
+			{
+				EventTime: aws.Time(expectedEventDatetime),
+				Username:  aws.String("username"),
+				Resources: []cloudtrailTypes.Resource{
+					{
+						ResourceName: aws.String(expectedSecGrpName),
+						ResourceType: aws.String("SecurityGroup"),
+					},
+				},
+			},
+		},
+	}
+	cloudTrailMock.EXPECT().LookupEvents(context.TODO(), expectedLookupEventsIn).Return(expectedLookupEventsOut, nil).Once()
+	expectedLookupEventsIn2 := &cloudtrail.LookupEventsInput{
+		StartTime: &expectedStarttime,
+		EndTime:   &expectedEndtime,
+		LookupAttributes: []cloudtrailTypes.LookupAttribute{
+			{
+				AttributeKey:   cloudtrailTypes.LookupAttributeKeyEventName,
+				AttributeValue: aws.String(string(internal.SECURITYGROUP_DELETED)),
+			},
+		},
+	}
+	expectedLookupEventsOut2 := &cloudtrail.LookupEventsOutput{
+		Events: []cloudtrailTypes.Event{
+			{
+				EventTime: aws.Time(expectedEventDatetime),
+				Username:  aws.String("username"),
+				Resources: []cloudtrailTypes.Resource{
+					{
+						ResourceName: aws.String(expectedSecGrpName),
+						ResourceType: aws.String("SecurityGroup"),
+					},
+				},
+			},
+		},
+	}
+	cloudTrailMock.EXPECT().LookupEvents(context.TODO(), expectedLookupEventsIn2).Return(expectedLookupEventsOut2, nil).Once()
 }
