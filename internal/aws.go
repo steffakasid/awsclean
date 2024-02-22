@@ -156,7 +156,7 @@ func (a AWS) GetCloudTrailForSecGroups(startTime, endTime time.Time) SecurityGro
 			EndTime:   aws.Time(endTime),
 			LookupAttributes: []cloudtrailTypes.LookupAttribute{
 				{
-					AttributeKey:   cloudtrailTypes.LookupAttributeKeyEventName,
+					AttributeKey:   cloudtrailTypes.LookupAttributeKeyEventName, // Todo: Need to get DeleteSecurityGroup as well and delete them from the list...
 					AttributeValue: aws.String("CreateSecurityGroup"),
 				},
 			},
