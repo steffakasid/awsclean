@@ -120,8 +120,8 @@ func ebsBindFlags() {
 	ebsListCmdFlags := ebsListCmd.Flags()
 	listOnlyFlags(ebsListCmdFlags, objType)
 
-	internal.CheckError(viper.BindPFlags(ebsListCmdFlags), extendedslog.Logger.Fatalf)
-	internal.CheckError(viper.BindPFlags(ebsDeleteCmdFlags), extendedslog.Logger.Fatalf)
+	extendedslog.Logger.Fatalf("Failed to bind Flags: %w", viper.BindPFlags(ebsListCmdFlags))
+	extendedslog.Logger.Fatalf("Failed to bind Flags: %w", viper.BindPFlags(ebsDeleteCmdFlags))
 }
 
 func ebsPrintTable(vols []ec2Types.Volume) {
@@ -135,6 +135,6 @@ func ebsPrintTable(vols []ec2Types.Volume) {
 
 func ebsPrintJSON(vols []ec2Types.Volume) {
 	out, err := json.Marshal(vols)
-	internal.CheckError(err, extendedslog.Logger.Fatalf)
+	extendedslog.Logger.Fatalf("Json.Marshal(vols) failed: %w", err)
 	fmt.Print(string(out))
 }

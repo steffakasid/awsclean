@@ -13,7 +13,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/steffakasid/awsclean/internal"
 	extendedslog "github.com/steffakasid/extended-slog"
-	"github.com/xhit/go-str2duration/v2"
 )
 
 // Constants used in command flags
@@ -96,7 +95,7 @@ func bindPersistentFlags() {
 	peristentFlags.StringP(debugFlag, "", "info", "Enable debugging. Possible Values [debug,info,warn,error,fatal]")
 	peristentFlags.StringP(outputFlag, "", "table", "Define how to output results [table, json] (default: table)")
 
-	internal.CheckError(viper.BindPFlags(peristentFlags), extendedslog.Logger.Fatalf)
+	extendedslog.Logger.Fatalf("Failed to bind Flags: %w", viper.BindPFlags(peristentFlags))
 }
 
 func deleteOnlyFlags(flagset *pflag.FlagSet, objType string) {
@@ -107,8 +106,7 @@ func deleteOnlyFlags(flagset *pflag.FlagSet, objType string) {
 func listOnlyFlags(flagset *pflag.FlagSet, objType string) {
 	flagset.BoolP(showtagsFlag, showtagsFlagSH, false, fmt.Sprintf("show tags of %s", objType))
 
-	ninetyDayOffset, err := str2duration.ParseDuration("90d")
-	internal.CheckError(err, extendedslog.Logger.Fatalf)
+	ninetyDayOffset := internal.ParseDuration("90d")
 	ninetyDaysAgo := time.Now().Add(ninetyDayOffset * -1)
 	flagset.StringP(startTimeFlag, startTimeFlagSH, ninetyDaysAgo.Format(time.RFC3339), fmt.Sprintf("Set start datetime using format: %s [default: %s]", time.RFC3339, ninetyDaysAgo.Format(time.RFC3339)))
 	flagset.StringP(endTimeFlag, endTimeFlagSH, time.Now().Format(time.RFC3339), fmt.Sprintf("Set end datetime using format: %s [default: %s]", time.RFC3339, time.Now().Format(time.RFC3339)))
@@ -120,7 +118,7 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	} else {
 		home, err := os.UserHomeDir()
-		internal.CheckError(err, extendedslog.Logger.Fatalf)
+		extendedslog.Logger.Fatalf("Can not get os.UserHomeDir(): %w", err)
 
 		viper.AddConfigPath(home)
 		viper.SetConfigType("yaml")

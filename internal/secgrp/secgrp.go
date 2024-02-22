@@ -6,7 +6,6 @@ import (
 
 	"github.com/steffakasid/awsclean/internal"
 	extendedslog "github.com/steffakasid/extended-slog"
-	"github.com/xhit/go-str2duration/v2"
 )
 
 type SecGrp struct {
@@ -30,7 +29,7 @@ func NewInstance(awsClient *internal.AWS, olderthen *time.Duration, dryrun, only
 }
 
 func (sec *SecGrp) GetSecurityGroups(startTime, endTime time.Time) error {
-	ninetyDayOffset, _ := str2duration.ParseDuration("90d")
+	ninetyDayOffset := internal.ParseDuration("90d")
 
 	extendedslog.Logger.Debug("GetCloudTrailForSecGroups")
 	secGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(startTime, endTime)

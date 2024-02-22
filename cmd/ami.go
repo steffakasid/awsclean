@@ -85,7 +85,7 @@ Examples:
 			viper.GetStringSlice(ignoreFlag))
 
 		err := amiclean.GetAMIs()
-		internal.CheckError(err, extendedslog.Logger.Fatalf)
+		extendedslog.Logger.Fatalf("amiclean.GetAMIs() failed: %w", err)
 
 		switch viper.GetString(outputFlag) {
 		case "json", "JSON":
@@ -122,7 +122,7 @@ Examples:
 			viper.GetStringSlice(ignoreFlag))
 
 		err := amiclean.DeleteOlderUnusedAMIs()
-		internal.CheckError(err, extendedslog.Logger.Fatalf)
+		extendedslog.Logger.Fatalf("amiclean.DeleteOlderUnusedAMIs() failed: %w", err)
 	},
 }
 
@@ -144,9 +144,9 @@ func amiBindFlags() {
 	amiCmdPersistentFlags.BoolP(launchTplFlag, launchTplFlagSH, false, "Additionally scan launch templates for used AMIs.")
 	amiCmdPersistentFlags.StringP(accountFlag, accountFlagSH, "", "Set AWS account number to cleanup AMIs. Used to set owner information when selecting AMIs. If not set only 'self' is used.")
 
-	internal.CheckError(viper.BindPFlags(amiCmdPersistentFlags), extendedslog.Logger.Fatalf)
-	internal.CheckError(viper.BindPFlags(amiDeleteCmdFlags), extendedslog.Logger.Fatalf)
-	internal.CheckError(viper.BindPFlags(amiListCmdFlags), extendedslog.Logger.Fatalf)
+	extendedslog.Logger.Fatalf("Failed to bind Flags: %w", viper.BindPFlags(amiCmdPersistentFlags))
+	extendedslog.Logger.Fatalf("Failed to bind Flags: %w", viper.BindPFlags(amiDeleteCmdFlags), extendedslog.Logger.Fatalf)
+	extendedslog.Logger.Fatalf("Failed to bind Flags: %w", viper.BindPFlags(amiListCmdFlags), extendedslog.Logger.Fatalf)
 }
 
 func amiPrintTable(amis []ec2Types.Image) {
@@ -160,6 +160,6 @@ func amiPrintTable(amis []ec2Types.Image) {
 
 func amiPrintJSON(amis []ec2Types.Image) {
 	out, err := json.Marshal(amis)
-	internal.CheckError(err, extendedslog.Logger.Fatalf)
+	extendedslog.Logger.Fatalf("Json.Marshal(amis) failed: %w", err)
 	fmt.Print(string(out))
 }

@@ -80,7 +80,7 @@ Examples:
 		secgrp, startDatetime, endDatetime := setup()
 
 		err := secgrp.GetSecurityGroups(startDatetime, endDatetime)
-		internal.CheckError(err, extendedslog.Logger.Fatalf)
+		extendedslog.Logger.Fatalf("secgrp.GetSecurityGroups() failed: %w", err)
 
 		switch viper.GetString(outputFlag) {
 		case "json", "JSON":
@@ -108,7 +108,7 @@ Examples:
 		secgrp, startDatetime, endDatetime := setup()
 
 		err := secgrp.DeleteSecurityGroups(startDatetime, endDatetime)
-		internal.CheckError(err, extendedslog.Logger.Fatalf)
+		extendedslog.Logger.Fatalf("secgrp.DeleteSecurityGroups() failed: %w", err)
 	},
 }
 
@@ -129,9 +129,9 @@ func secGrpBindFlags() {
 	secGrpCmd.AddCommand(secGrpListCmd)
 	secGrpCmd.AddCommand(secGrpDeleteCmd)
 
-	internal.CheckError(viper.BindPFlags(secGrpCmdPersistentFlags), extendedslog.Logger.Fatalf)
-	internal.CheckError(viper.BindPFlags(secGrpDeleteCmdFlags), extendedslog.Logger.Fatalf)
-	internal.CheckError(viper.BindPFlags(secGrpListCmdFlags), extendedslog.Logger.Fatalf)
+	extendedslog.Logger.Fatalf("Failed to bind flags: %w", viper.BindPFlags(secGrpCmdPersistentFlags))
+	extendedslog.Logger.Fatalf("Failed to bind flags: %w", viper.BindPFlags(secGrpDeleteCmdFlags))
+	extendedslog.Logger.Fatalf("Failed to bind flags: %w", viper.BindPFlags(secGrpListCmdFlags))
 }
 
 func setup() (*secgrp.SecGrp, time.Time, time.Time) {
@@ -141,10 +141,10 @@ func setup() (*secgrp.SecGrp, time.Time, time.Time) {
 	secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, viper.GetBool(dryrunFlag), viper.GetBool(onlyUnusedFlag))
 
 	startDatetime, err := time.Parse(time.RFC3339, viper.GetString(startTimeFlag))
-	internal.CheckError(err, extendedslog.Logger.Fatalf)
+	extendedslog.Logger.Fatalf("Error parsing given %[2]s: %[1]w", err, startTimeFlag)
 
 	endDatetime, err := time.Parse(time.RFC3339, viper.GetString(endTimeFlag))
-	internal.CheckError(err, extendedslog.Logger.Fatalf)
+	extendedslog.Logger.Fatalf("Weeoe parsing given %[2]s: %[2]w", err, endTimeFlag)
 	return secgrp, startDatetime, endDatetime
 }
 
@@ -164,6 +164,6 @@ func secGrpPrintTable(grps internal.SecurityGroups) {
 
 func secGrpPrintJSON(grps internal.SecurityGroups) {
 	out, err := json.Marshal(grps)
-	internal.CheckError(err, extendedslog.Logger.Fatalf)
+	extendedslog.Logger.Fatalf("Json.Marshal(grps) failed: %w", err)
 	fmt.Print(string(out))
 }

@@ -17,6 +17,8 @@ type SecurityGroup struct {
 	AttachedToNetIfaces []string
 }
 
+const name_tag_key = "Name"
+
 type SecurityGroups = map[string]*SecurityGroup
 
 func AddOrUpdate(grps SecurityGroups, grpToAdd SecurityGroup) error {
@@ -82,10 +84,10 @@ func mergeFields(src SecurityGroup, tgt *SecurityGroup) error {
 		}
 	}
 
-	// if GroupName not set this should mean other fields are also not set so we overwrite with src.
+	// if GroupId not set this should mean other fields are also not set so we overwrite with src.
 	if tgt.SecurityGroup != nil &&
-		tgt.SecurityGroup.GroupName == nil &&
-		src.SecurityGroup.GroupName != nil {
+		tgt.SecurityGroup.GroupId == nil &&
+		src.SecurityGroup.GroupId != nil {
 		tgt.SecurityGroup = src.SecurityGroup
 	}
 

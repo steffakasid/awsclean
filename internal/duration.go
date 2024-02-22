@@ -9,6 +9,6 @@ import (
 
 func ParseDuration(str string) time.Duration {
 	duration, err := str2duration.ParseDuration(str)
-	CheckError(err, extendedslog.Logger.Fatalf)
+	extendedslog.Logger.Fatalf("error on str2duration.ParseDuration(str): %w", err)
 	return duration
 }

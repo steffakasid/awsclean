@@ -53,7 +53,7 @@ func NewAWSClient() *AWS {
 	aws := &AWS{}
 
 	cfg, err := config.LoadDefaultConfig(context.TODO())
-	CheckError(err, extendedslog.Logger.Fatalf)
+	extendedslog.Logger.Fatalf("aws.LoadDefaultConfig() failed: %w", err)
 
 	aws.ec2 = ec2.NewFromConfig(cfg)
 	aws.cloudtrail = cloudtrail.NewFromConfig(cfg)
@@ -193,6 +193,7 @@ func (a AWS) GetCloudTrailForSecGroups(startTime, endTime time.Time) SecurityGro
 							CreationTime:  ev.EventTime,
 						}
 						err := AddOrUpdate(secGrps, secGrp)
+
 						extendedslog.Logger.Error(fmt.Errorf("GetCloudTrailForSecGroups() AddOrUpdate() failed: %w", err))
 
 						extendedslog.Logger.Debug("Adding ressource", *res.ResourceName, *res.ResourceType)
