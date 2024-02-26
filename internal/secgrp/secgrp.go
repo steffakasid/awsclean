@@ -37,6 +37,8 @@ func (sec *SecGrp) GetSecurityGroups(startTime, endTime time.Time) error {
 	secGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(internal.SECURITYGROUP_CREATED, startTime, endTime)
 	secGrps.AppendAll(secGrpsFromCCTrail)
 
+	extendedslog.Logger.Debug(internal.ToJSONString(CreatedsecGrpsFromCCTrail))
+
 	// if startTime is before 90d in past we want to get additional SecurityGroups which are not in CloudTrail
 	if startTime.After(time.Now().Add(ninetyDayOffset * -1)) {
 		extendedslog.Logger.Debug("GetSecurityGroups")
