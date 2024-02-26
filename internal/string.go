@@ -1,6 +1,11 @@
 package internal
 
-import "regexp"
+import (
+	"encoding/json"
+	"regexp"
+
+	extendedslog "github.com/steffakasid/extended-slog"
+)
 
 func Contains(arr []string, elem string) bool {
 	for _, itm := range arr {
@@ -29,4 +34,11 @@ func MatchAny(str string, regExps []string) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func ToJSONString(obj any) string {
+	bt, err := json.Marshal(obj)
+	extendedslog.Logger.Error(err)
+
+	return string(bt)
 }
