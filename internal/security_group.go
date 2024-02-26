@@ -17,11 +17,10 @@ type SecurityGroup struct {
 	AttachedToNetIfaces []string
 }
 
-const name_tag_key = "Name"
+// the key must be the SecurityGroup.GroupName of the SecurityGroup value
+type SecurityGroups map[string]*SecurityGroup
 
-type SecurityGroups = map[string]*SecurityGroup
-
-func AddOrUpdate(grps SecurityGroups, grpToAdd SecurityGroup) error {
+func (grps SecurityGroups) AddOrUpdate(grpToAdd SecurityGroup) error {
 
 	if grpToAdd.SecurityGroup == nil {
 		return errors.New("AddOrUpdate() grpToAdd.SecurityGroup is nil")
@@ -33,36 +32,62 @@ func AddOrUpdate(grps SecurityGroups, grpToAdd SecurityGroup) error {
 	groupName := *grpToAdd.SecurityGroup.GroupName
 
 	if grp, exists := grps[groupName]; exists {
-
-		err := mergeFields(grpToAdd, grp)
+		err := grp.mergeFields(grpToAdd)
 		if err != nil {
 			extendedslog.Logger.Error(fmt.Errorf("error in AddOrUpdate(): %w", err))
 		}
-
 	} else {
 		grps[groupName] = &grpToAdd
 	}
 	return nil
 }
 
-func AppendAll(src, target SecurityGroups) {
+func (grps SecurityGroups) AppendAll(src SecurityGroups) {
 	for key, val := range src {
-		if tgtObj, exists := target[key]; exists {
-			extendedslog.Logger.Debugf("Merge %v with %v", *val.SecurityGroup.GroupName, *tgtObj.SecurityGroup.GroupName)
-			err := mergeFields(*val, tgtObj)
+		if tgtObj, exists := grps.getValueByIDorName(key); exists {
+			err := tgtObj.mergeFields(*val)
 			if err != nil {
 				extendedslog.Logger.Error(fmt.Errorf("error in AppendAll(): %w", err))
 			}
-			target[key] = tgtObj
+			grps[key] = tgtObj
 		} else {
-			target[key] = val
+			grps[key] = val
 		}
 	}
 }
 
-// Basically add details from src to tgt.
-func mergeFields(src SecurityGroup, tgt *SecurityGroup) error {
+func (grps SecurityGroups) UpdateIfExists(src SecurityGroups) {
+	for key, val := range src {
+		if tgtObj, exists := grps.getValueByIDorName(key); exists {
+			err := tgtObj.mergeFields(*val)
+			if err != nil {
+				extendedslog.Logger.Error(fmt.Errorf("error in UpdateIfExists(): %w", err))
+			}
+			grps[key] = tgtObj
+		} else {
+			extendedslog.Logger.Infof("%s doesn't seem to exist anymore. Skiipping.", key)
+		}
+	}
+}
 
+func (grps SecurityGroups) getValueByIDorName(idOrName string) (value *SecurityGroup, exists bool) {
+	// if it's the name we can just get it ad key from the map by convention.
+	if grp, exists := grps[idOrName]; exists {
+		return grp, true
+	}
+
+	for _, grp := range grps {
+		if grp.SecurityGroup != nil &&
+			*grp.SecurityGroup.GroupId == idOrName {
+			return grp, true
+		}
+	}
+
+	return nil, false
+}
+
+// Basically add details from src to tgt.
+func (tgt *SecurityGroup) mergeFields(src SecurityGroup) error {
 	if src.SecurityGroup == nil && tgt.SecurityGroup == nil {
 		return fmt.Errorf("error mergin SecurityGroups. Both objects have obj.SecurityGroup = nil")
 	}

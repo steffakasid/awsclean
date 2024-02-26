@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/steffakasid/awsclean/internal"
 	"github.com/steffakasid/awsclean/internal/mocks"
-	extendedslog "github.com/steffakasid/extended-slog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xhit/go-str2duration/v2"
@@ -42,8 +41,6 @@ const (
 var noFilterPatterns = []string{}
 
 func TestGetUsedAmis(t *testing.T) {
-
-	extendedslog.InitLogger()
 	defaultOlderthen, err := str2duration.ParseDuration("7d")
 	assert.NoError(t, err)
 
@@ -143,8 +140,6 @@ func TestGetUsedAmis(t *testing.T) {
 }
 
 func TestDeleteOlderUnusedAMIs(t *testing.T) {
-
-	extendedslog.InitLogger()
 	defaultOlderthen, err := str2duration.ParseDuration("7d")
 	assert.NoError(t, err)
 

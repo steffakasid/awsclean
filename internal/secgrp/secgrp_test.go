@@ -12,7 +12,6 @@ import (
 	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/steffakasid/awsclean/internal"
 	"github.com/steffakasid/awsclean/internal/mocks"
-	extendedslog "github.com/steffakasid/extended-slog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xhit/go-str2duration/v2"
@@ -21,7 +20,7 @@ import (
 var ninetyDayOffset time.Duration
 
 func setupSUT(t *testing.T, olderthen *time.Duration, dryrun, onlyUnused bool) (*SecGrp, *mocks.MockEc2client, *mocks.MockCloudTrail) {
-	extendedslog.InitLogger()
+
 	var err error
 	ninetyDayOffset, err = str2duration.ParseDuration("90d")
 	require.NoError(t, err)
@@ -165,6 +164,7 @@ func mockDescribeSecGrps(ec2Mock *mocks.MockEc2client,
 	expectedSecGrpID, expectedSecGrpName string) {
 	expectedDescribeSecGrpsOpts := &ec2.DescribeSecurityGroupsInput{
 		MaxResults: aws.Int32(100),
+		GroupNames: []string{expectedSecGrpName},
 	}
 	expectedDescribeSecGrpsOut := &ec2.DescribeSecurityGroupsOutput{
 		SecurityGroups: []ec2Types.SecurityGroup{
@@ -175,6 +175,18 @@ func mockDescribeSecGrps(ec2Mock *mocks.MockEc2client,
 		},
 	}
 	ec2Mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedDescribeSecGrpsOpts).Return(expectedDescribeSecGrpsOut, nil).Once()
+	expectedDescribeSecGrpsOpts2 := &ec2.DescribeSecurityGroupsInput{
+		MaxResults: aws.Int32(100),
+	}
+	expectedDescribeSecGrpsOut2 := &ec2.DescribeSecurityGroupsOutput{
+		SecurityGroups: []ec2Types.SecurityGroup{
+			{
+				GroupId:   aws.String(expectedSecGrpID),
+				GroupName: aws.String(expectedSecGrpName),
+			},
+		},
+	}
+	ec2Mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedDescribeSecGrpsOpts2).Return(expectedDescribeSecGrpsOut2, nil).Once()
 }
 
 func mockLookupEvents(cloudTrailMock *mocks.MockCloudTrail,
@@ -198,7 +210,7 @@ func mockLookupEvents(cloudTrailMock *mocks.MockCloudTrail,
 				Resources: []cloudtrailTypes.Resource{
 					{
 						ResourceName: aws.String(expectedSecGrpName),
-						ResourceType: aws.String("SecurityGroup"),
+						ResourceType: aws.String(internal.CLOUDTRAIL_RESOURCE_TYPE),
 					},
 				},
 			},

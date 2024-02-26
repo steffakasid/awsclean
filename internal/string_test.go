@@ -3,13 +3,8 @@ package internal
 import (
 	"testing"
 
-	extendedslog "github.com/steffakasid/extended-slog"
 	"github.com/stretchr/testify/assert"
 )
-
-func init() {
-	extendedslog.InitLogger()
-}
 
 func TestContains(t *testing.T) {
 	t.Run("True", func(t *testing.T) {

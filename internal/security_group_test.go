@@ -7,14 +7,9 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	extendedslog "github.com/steffakasid/extended-slog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func init() {
-	extendedslog.InitLogger()
-}
 
 func TestAddOrUpdate(t *testing.T) {
 
@@ -31,7 +26,7 @@ func TestAddOrUpdate(t *testing.T) {
 			},
 		}
 
-		err := AddOrUpdate(grps, grpToAdd)
+		err := grps.AddOrUpdate(grpToAdd)
 		require.NoError(t, err)
 
 		assert.Len(t, grps, 1)
@@ -66,7 +61,7 @@ func TestAddOrUpdate(t *testing.T) {
 			Creator: expectedCreator,
 		}
 
-		err := AddOrUpdate(grps, grpToAdd)
+		err := grps.AddOrUpdate(grpToAdd)
 		require.NoError(t, err)
 		assert.Len(t, grps, 1)
 		assert.Equal(t, expectedCreator, grps[expectedName].Creator)
@@ -102,7 +97,7 @@ func TestAddOrUpdate(t *testing.T) {
 			AttachedToNetIfaces: []string{expectedIFace},
 		}
 
-		err := AddOrUpdate(grps, grpToAdd)
+		err := grps.AddOrUpdate(grpToAdd)
 		require.NoError(t, err)
 		assert.Len(t, grps, 1)
 		assert.Equal(t, expectedCreator, grps[expectedName].Creator)
@@ -139,7 +134,7 @@ func TestAddOrUpdate(t *testing.T) {
 			AttachedToNetIfaces: []string{expectedIFace},
 		}
 
-		err := AddOrUpdate(grps, grpToAdd)
+		err := grps.AddOrUpdate(grpToAdd)
 		require.NoError(t, err)
 		assert.Len(t, grps, 1)
 		assert.EqualValues(t, *grps[expectedName].SecurityGroup, types.SecurityGroup{
@@ -219,7 +214,7 @@ func TestAppendAll(t *testing.T) {
 	for name, test := range tblTest {
 		t.Run(fmt.Sprint("Success ", name), func(t *testing.T) {
 
-			AppendAll(test.src, test.tgt)
+			test.tgt.AppendAll(test.src)
 			assert.Len(t, test.tgt, test.length)
 			test.assertExpected(t, test.src, test.tgt)
 		})
@@ -295,7 +290,7 @@ func TestMergeFields(t *testing.T) {
 	}
 	for name, test := range tblTest {
 		t.Run(fmt.Sprint("Success ", name), func(t *testing.T) {
-			err := mergeFields(test.src, test.tgt)
+			err := test.tgt.mergeFields(test.src)
 			require.NoError(t, err)
 			assert.Equal(t, expectedCreator, test.tgt.Creator)
 			assert.Equal(t, expectedCreationTime, *test.tgt.CreationTime)
@@ -320,7 +315,7 @@ func TestMergeFields(t *testing.T) {
 			},
 			Creator: *aws.String(expectedCreator),
 		}
-		err := mergeFields(src, tgt)
+		err := tgt.mergeFields(src)
 		require.NoError(t, err)
 		assert.Equal(t, expectedCreator, tgt.Creator)
 	})
@@ -344,7 +339,7 @@ func TestMergeFields(t *testing.T) {
 			},
 			CreationTime: &expectedCreationTime,
 		}
-		err := mergeFields(src, tgt)
+		err := tgt.mergeFields(src)
 		require.NoError(t, err)
 		assert.Equal(t, expectedCreationTime, *tgt.CreationTime)
 	})
@@ -368,7 +363,7 @@ func TestMergeFields(t *testing.T) {
 			},
 			CreationTime: &defaultCreationtime,
 		}
-		err := mergeFields(src, tgt)
+		err := tgt.mergeFields(src)
 		require.NoError(t, err)
 		assert.Equal(t, expectedCreationTime, *tgt.CreationTime)
 	})
@@ -388,7 +383,7 @@ func TestMergeFields(t *testing.T) {
 				GroupName: aws.String(expectedName),
 			},
 		}
-		err := mergeFields(src, tgt)
+		err := tgt.mergeFields(src)
 		require.NoError(t, err)
 		assert.True(t, tgt.CreationTime.Compare(time.Time{}) == 0)
 	})
@@ -410,7 +405,7 @@ func TestMergeFields(t *testing.T) {
 				GroupName: aws.String(expectedName2),
 			},
 		}
-		err := mergeFields(src, tgt)
+		err := tgt.mergeFields(src)
 		require.Error(t, err)
 		require.EqualError(t, err, fmt.Sprintf("error mergin SecurityGroups: %v != %v", expectedName, expectedName2))
 	})
@@ -418,7 +413,7 @@ func TestMergeFields(t *testing.T) {
 	t.Run("No SecurityGroup Details", func(t *testing.T) {
 		src := SecurityGroup{}
 		tgt := &SecurityGroup{}
-		err := mergeFields(src, tgt)
+		err := tgt.mergeFields(src)
 		require.Error(t, err)
 		require.EqualError(t, err, "error mergin SecurityGroups. Both objects have obj.SecurityGroup = nil")
 	})

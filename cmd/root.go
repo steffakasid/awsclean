@@ -76,9 +76,6 @@ func Execute(version string) {
 
 // The one and only init() for package cmd
 func init() {
-
-	extendedslog.InitLogger()
-
 	cobra.OnInitialize(initConfig)
 
 	bindPersistentFlags()

@@ -7,13 +7,12 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.2
 	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.37.1
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.148.0
-	github.com/aws/smithy-go v1.20.1
 	github.com/google/uuid v1.6.0
 	github.com/rodaine/table v1.1.1
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
-	github.com/steffakasid/extended-slog v0.0.0-20240222065219-9ff26c21b061
+	github.com/steffakasid/extended-slog v0.1.0
 	github.com/stretchr/testify v1.8.4
 	github.com/xhit/go-str2duration/v2 v2.1.0
 )
@@ -29,6 +28,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.19.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.22.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.27.2 // indirect
+	github.com/aws/smithy-go v1.20.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect

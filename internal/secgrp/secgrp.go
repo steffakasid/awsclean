@@ -2,7 +2,6 @@ package secgrp
 
 import (
 	"fmt"
-	"maps"
 	"time"
 
 	"github.com/steffakasid/awsclean/internal"
@@ -31,24 +30,22 @@ func NewInstance(awsClient *internal.AWS, olderthen *time.Duration, dryrun, only
 
 func (sec *SecGrp) GetSecurityGroups(startTime, endTime time.Time) error {
 	ninetyDayOffset := internal.ParseDuration("90d")
+	secGrps := internal.SecurityGroups{}
+	var err error
 
 	extendedslog.Logger.Debug("GetCloudTrailForSecGroups")
-	CreatedsecGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(internal.SECURITYGROUP_CREATED, startTime, endTime)
-	DeletededSecGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(internal.SECURITYGROUP_DELETED, startTime, endTime)
+	secGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(internal.SECURITYGROUP_CREATED, startTime, endTime)
+	secGrps.AppendAll(secGrpsFromCCTrail)
 
 	// if startTime is before 90d in past we want to get additional SecurityGroups which are not in CloudTrail
-	filterSecGrps := internal.SecurityGroups{}
 	if startTime.After(time.Now().Add(ninetyDayOffset * -1)) {
-		filterSecGrps = CreatedsecGrpsFromCCTrail
+		extendedslog.Logger.Debug("GetSecurityGroups")
+		result, err := sec.awsClient.GetSecurityGroups(nil, nil)
+		if nil != err {
+			return fmt.Errorf("could not getSecurityGroups: %w", err)
+		}
+		secGrps.AppendAll(result)
 	}
-
-	extendedslog.Logger.Debug("GetSecurityGroups")
-	secGrps, err := sec.awsClient.GetSecurityGroups(filterSecGrps)
-
-	if nil != err {
-		return fmt.Errorf("could not getSecurityGroups: %w", err)
-	}
-	internal.AppendAll(CreatedsecGrpsFromCCTrail, secGrps)
 
 	if sec.onlyUnused || sec.olderthen != nil {
 		extendedslog.Logger.Debug("GetNotUsedSecGrpsFromENI")
@@ -57,16 +54,6 @@ func (sec *SecGrp) GetSecurityGroups(startTime, endTime time.Time) error {
 			return fmt.Errorf("could not get GetNotUsedSecGrpsFromENI() %w", err)
 		}
 	}
-	maps.DeleteFunc(secGrps, func(k string, v *internal.SecurityGroup) bool {
-		// keys are the SecurityGroupNames
-		// so we delete if k is in DeletededsecGrpsFromCCTrail
-		for key := range DeletededSecGrpsFromCCTrail {
-			if key == k {
-				return true
-			}
-		}
-		return false
-	})
 
 	extendedslog.Logger.Debug("secgrp.go GetSecurityGroups returning no error")
 	return nil
@@ -100,11 +87,11 @@ func (sec SecGrp) GetAllSecurityGroups() internal.SecurityGroups {
 	all := internal.SecurityGroups{}
 
 	extendedslog.Logger.Debug("GetAllSecurityGroups append unused")
-	internal.AppendAll(sec.unusedSecGrps, all)
+	all.AppendAll(sec.unusedSecGrps)
 
 	if !sec.onlyUnused {
 		extendedslog.Logger.Debug("GetAllSecurityGroups append used")
-		internal.AppendAll(sec.usedSecGrps, all)
+		all.AppendAll(sec.usedSecGrps)
 	}
 
 	return all

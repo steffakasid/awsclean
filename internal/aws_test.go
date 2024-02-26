@@ -2,7 +2,6 @@ package internal
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -12,15 +11,12 @@ import (
 	cloudtrailTypes "github.com/aws/aws-sdk-go-v2/service/cloudtrail/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/aws/smithy-go"
 	"github.com/steffakasid/awsclean/internal/mocks"
-	extendedslog "github.com/steffakasid/extended-slog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func setupSUT(t *testing.T) (*AWS, *mocks.MockEc2client, *mocks.MockCloudTrail) {
-	extendedslog.InitLogger()
 	ec2ClientMock := mocks.NewMockEc2client(t)
 	cloudTrailMock := mocks.NewMockCloudTrail(t)
 	SUT := NewFromInterface(ec2ClientMock, cloudTrailMock)
@@ -60,7 +56,7 @@ func TestGetSecurityGroups(t *testing.T) {
 		}
 		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts2).Return(expectedOut2, nil).Once()
 
-		secGrps, err := SUT.GetSecurityGroups(SecurityGroups{})
+		secGrps, err := SUT.GetSecurityGroups(nil, nil)
 		require.NoError(t, err)
 		assert.Len(t, secGrps, 2)
 		mock.AssertExpectations(t)
@@ -90,7 +86,7 @@ func TestGetSecurityGroups(t *testing.T) {
 		}
 		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts2).Return(nil, fmt.Errorf("Something went wrong")).Once()
 
-		out, err := SUT.GetSecurityGroups(SecurityGroups{})
+		out, err := SUT.GetSecurityGroups(nil, nil)
 		require.Error(t, err)
 		require.EqualError(t, err, "Something went wrong")
 
@@ -242,7 +238,7 @@ func TestGetCloudTrailForSecGroups(t *testing.T) {
 					Resources: []cloudtrailTypes.Resource{
 						{
 							ResourceName: aws.String("somename"),
-							ResourceType: aws.String("SecurityGroup"),
+							ResourceType: aws.String(CLOUDTRAIL_RESOURCE_TYPE),
 						},
 					},
 				},
@@ -522,34 +518,4 @@ func TestDeleteVolume(t *testing.T) {
 		mock.AssertExpectations(t)
 	})
 
-}
-
-func TestCheckError(t *testing.T) {
-	t.Run("without error", func(t *testing.T) {
-		CheckError(nil, func(tpl string, args ...interface{}) {
-			t.Log("shouldn't be called")
-			t.Fail()
-		})
-	})
-
-	t.Run("with error", func(t *testing.T) {
-		err := errors.New("error")
-		CheckError(err, func(tpl string, args ...interface{}) {
-			assert.Equal(t, err.Error(), tpl)
-		})
-	})
-
-	t.Run("with smithy error", func(t *testing.T) {
-		err := &smithy.GenericAPIError{
-			Code:    "1234",
-			Message: "message",
-			Fault:   smithy.FaultServer,
-		}
-		CheckError(err, func(tpl string, args ...interface{}) {
-			assert.Equal(t, "code: %s, message: %s, fault: %s", tpl)
-			assert.Equal(t, err.Code, args[0])
-			assert.Equal(t, err.Message, args[1])
-			assert.Equal(t, err.Fault.String(), args[2])
-		})
-	})
 }

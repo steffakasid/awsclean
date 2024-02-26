@@ -103,7 +103,7 @@ func (a AmiClean) DeleteOlderUnusedAMIs() error {
 			if creationDate.Before(olderThenDate) {
 				extendedslog.Logger.Infof("Delete %s:%s as it's creationdate %s is older then %s", *ami.ImageId, *ami.Name, *ami.CreationDate, olderThenDate.String())
 				err = a.awsClient.DeregisterImage(*ami.ImageId, a.dryrun)
-				internal.CheckError(err, extendedslog.Logger.Errorf)
+				extendedslog.Logger.Errorf("Error on DeregisterImage(): %s", err)
 			} else {
 				extendedslog.Logger.Infof("Keeping %s:%s as it's creationdate %s is newer then %s", *ami.ImageId, *ami.Name, *ami.CreationDate, olderThenDate.String())
 			}

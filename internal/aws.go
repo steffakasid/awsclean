@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -15,9 +16,10 @@ import (
 	cloudtrailTypes "github.com/aws/aws-sdk-go-v2/service/cloudtrail/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/aws/smithy-go"
 	extendedslog "github.com/steffakasid/extended-slog"
 )
+
+const CLOUDTRAIL_RESOURCE_TYPE = "AWS::EC2::SecurityGroup"
 
 type Ec2client interface {
 	DescribeInstances(ctx context.Context, params *ec2.DescribeInstancesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeInstancesOutput, error)
@@ -55,8 +57,6 @@ func NewFromInterface(ec2 Ec2client, cloudtrail CloudTrail) *AWS {
 }
 
 func NewAWSClient() *AWS {
-
-	extendedslog.InitLogger()
 	aws := &AWS{}
 
 	cfg, err := config.LoadDefaultConfig(context.TODO())
@@ -67,34 +67,37 @@ func NewAWSClient() *AWS {
 	return aws
 }
 
-func (a *AWS) GetSecurityGroups(secGrps SecurityGroups) (SecurityGroups, error) {
+func (a *AWS) GetSecurityGroups(secGrpNames, secGrpIDs []string) (SecurityGroups, error) {
 	secGrpsRet := SecurityGroups{}
-
-	secGrpNames := []string{}
-	for _, secGrp := range secGrps {
-		secGrpNames = append(secGrpNames, *secGrp.SecurityGroup.GroupName)
-	}
 
 	in := &ec2.DescribeSecurityGroupsInput{
 		MaxResults: aws.Int32(100),
 	}
 
+	if len(secGrpNames) > 0 && len(secGrpIDs) > 0 {
+		return secGrpsRet, errors.New("You must specify either SecuritGroupIDs or SecurityGroupNames. Not both at once.")
+	}
+
 	if len(secGrpNames) > 0 {
 		in.GroupNames = secGrpNames
+	}
+	if len(secGrpIDs) > 0 {
+		in.GroupIds = secGrpIDs
 	}
 
 	for {
 		out, err := a.ec2.DescribeSecurityGroups(context.TODO(), in)
-		CheckError(err, extendedslog.Logger.Debugf)
+		extendedslog.Logger.Error(err)
+
 		if nil != err {
 			return secGrpsRet, err
 		}
 
 		for _, secGrp := range out.SecurityGroups {
-			err := AddOrUpdate(secGrpsRet, SecurityGroup{
+			err := secGrpsRet.AddOrUpdate(SecurityGroup{
 				SecurityGroup: &secGrp,
 			})
-			extendedslog.Logger.Error(fmt.Errorf("GetSecurityGroups() AddOrUpdate failed %w", err))
+			extendedslog.Logger.Errorf("GetSecurityGroups() AddOrUpdate failed %s", err)
 		}
 
 		if out.NextToken != nil {
@@ -133,8 +136,8 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used SecurityGro
 
 		if len(out.NetworkInterfaces) == 0 {
 			extendedslog.Logger.Debugf("No ENI attached to group with Name: %s", *secGrp.SecurityGroup.GroupName)
-			err := AddOrUpdate(unused, *secGrp)
-			extendedslog.Logger.Error(fmt.Errorf("GetNotUsedSecGrpFromENI() AddOrUpdate() of unused SecGrp failed: %w", err))
+			err := unused.AddOrUpdate(*secGrp)
+			extendedslog.Logger.Errorf("GetNotUsedSecGrpFromENI() AddOrUpdate() of unused SecGrp failed: %s", err)
 		}
 		if len(out.NetworkInterfaces) > 0 {
 			attachedIfaces := []string{}
@@ -143,9 +146,8 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used SecurityGro
 			}
 			secGrp.IsUsed = true
 			secGrp.AttachedToNetIfaces = attachedIfaces
-			err := AddOrUpdate(used, *secGrp)
-			extendedslog.Logger.Error(fmt.Errorf("GetNotUsedSecGrpFromENI() AddOrUpdate() of used SecGrp failed: %w", err))
-
+			err := used.AddOrUpdate(*secGrp)
+			extendedslog.Logger.Errorf("GetNotUsedSecGrpFromENI() AddOrUpdate() of used SecGrp failed: %s", err)
 		}
 	}
 	return used, unused, nil
@@ -173,14 +175,8 @@ func (a AWS) GetCloudTrailForSecGroups(eventType CloudTrailEventType, startTime,
 		}
 
 		// We only get CloudTrailEvents of the last 90d: https://docs.aws.amazon.com/sdk-for-go/api/service/cloudtrail/#CloudTrail.LookupEvents
-		// ResouceName: vpc-a51078cd
-		// ResouceName: eksctl-eks-dev-nodegroup-apic-gw-1a-green-SG-16ACVO6XMU6HE
-		// ResouceName: sg-018ce2cbe787b04ef
-		// Time 2024-01-12 14:37:43 +0000 UTC
-		// Wer ist schuld? `email@adress.com`
-		// ---------------------------------------------
 		out, err := a.cloudtrail.LookupEvents(context.TODO(), lookup)
-		CheckError(err, extendedslog.Logger.Errorf)
+		extendedslog.Logger.Errorf("Error on LookupEvents(): %s", err)
 		// out could be nil if rate is exceeded
 		// TODO: needs unit test
 		if out != nil && out.NextToken != nil {
@@ -190,26 +186,44 @@ func (a AWS) GetCloudTrailForSecGroups(eventType CloudTrailEventType, startTime,
 		}
 
 		if out != nil {
-			for _, ev := range out.Events {
-				for _, res := range ev.Resources {
-					// TODO: needs unit testing
-					if *res.ResourceType == "AWS::EC2::SecurityGroup" {
-						secGrp := SecurityGroup{
-							SecurityGroup: &ec2Types.SecurityGroup{GroupName: res.ResourceName},
-							Creator:       *ev.Username,
-							CreationTime:  ev.EventTime,
-						}
-						err := AddOrUpdate(secGrps, secGrp)
+			secGrps.AppendAll(a.getDetailsForSecGrpsFromCloudTrail(out))
+		}
+	}
+	return secGrps
+}
 
-						extendedslog.Logger.Error(fmt.Errorf("GetCloudTrailForSecGroups() AddOrUpdate() failed: %w", err))
+func (a AWS) getDetailsForSecGrpsFromCloudTrail(out *cloudtrail.LookupEventsOutput) SecurityGroups {
+	var groupNames, groupIDs []string
+	additionalDetails := SecurityGroups{}
+	secGrps := SecurityGroups{}
 
-						extendedslog.Logger.Debug("Adding ressource", *res.ResourceName, *res.ResourceType)
-					}
-
+	for _, ev := range out.Events {
+		for _, res := range ev.Resources {
+			// TODO: needs unit testing
+			if *res.ResourceType == CLOUDTRAIL_RESOURCE_TYPE {
+				// sg- indicates this is a GroupID
+				if strings.HasPrefix(*res.ResourceName, "sg-") {
+					groupIDs = UniqueAppend(groupIDs, *res.ResourceName)
+				} else {
+					groupNames = UniqueAppend(groupNames, *res.ResourceName)
+				}
+				additionalDetails[*res.ResourceName] = &SecurityGroup{
+					Creator:      *ev.Username,
+					CreationTime: ev.EventTime,
 				}
 			}
 		}
 	}
+	// aws-sdk-go can't query with IDs and Names at once
+	grpsWithName, err := a.GetSecurityGroups(groupNames, []string{})
+	extendedslog.Logger.Errorf("Error getting details: %s", err)
+	secGrps.AppendAll(grpsWithName)
+	extendedslog.Logger.Errorf("GetCloudTrailForSecGroups() AddOrUpdate() failed: %s", err)
+	grpsWithID, err := a.GetSecurityGroups([]string{}, groupIDs)
+	extendedslog.Logger.Errorf("Error getting details: %s", err)
+	secGrps.AppendAll(grpsWithID)
+
+	secGrps.UpdateIfExists(additionalDetails)
 
 	return secGrps
 }
@@ -242,7 +256,7 @@ func (a *AWS) GetUsedAMIsFromEC2() []string {
 			opts.NextToken = &nextToken
 		}
 		ec2Instances, err := a.ec2.DescribeInstances(context.TODO(), opts)
-		CheckError(err, extendedslog.Logger.Errorf)
+		extendedslog.Logger.Errorf("Error on DescribeInstances: %s", err)
 		if ec2Instances != nil {
 			for _, reserveration := range ec2Instances.Reservations {
 				for _, instance := range reserveration.Instances {
@@ -271,7 +285,7 @@ func (a *AWS) GetUsedAMIsFromLaunchTpls() []string {
 			opts.NextToken = &nextToken
 		}
 		launchTpls, err := a.ec2.DescribeLaunchTemplateVersions(context.TODO(), opts)
-		CheckError(err, extendedslog.Logger.Errorf)
+		extendedslog.Logger.Error(err)
 		if launchTpls != nil {
 			for _, launchTplVersion := range launchTpls.LaunchTemplateVersions {
 				if launchTplVersion.LaunchTemplateData.ImageId != nil {
@@ -319,7 +333,8 @@ func (a AWS) GetAvailableEBSVolumes() []ec2Types.Volume {
 			opts.NextToken = &nextToken
 		}
 		volumeOutput, err := a.ec2.DescribeVolumes(context.TODO(), opts)
-		CheckError(err, extendedslog.Logger.Errorf)
+		extendedslog.Logger.Error(err)
+
 		if volumeOutput != nil {
 			volumes = append(volumes, volumeOutput.Volumes...)
 		}
@@ -341,15 +356,4 @@ func (a AWS) DeleteVolume(volumeId string, dryrun bool) error {
 
 	_, err := a.ec2.DeleteVolume(context.TODO(), opts)
 	return err
-}
-
-func CheckError(err error, logFunc func(tpl string, args ...interface{})) {
-	if err != nil {
-		var ae smithy.APIError
-		if errors.As(err, &ae) {
-			logFunc("code: %s, message: %s, fault: %s", ae.ErrorCode(), ae.ErrorMessage(), ae.ErrorFault().String())
-		} else {
-			logFunc(err.Error())
-		}
-	}
 }
