@@ -5,9 +5,7 @@ package internal
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -67,23 +65,12 @@ func NewAWSClient() *AWS {
 	return aws
 }
 
-func (a *AWS) GetSecurityGroups(secGrpNames, secGrpIDs []string) (SecurityGroups, error) {
+func (a *AWS) GetSecurityGroups() (SecurityGroups, error) {
 	secGrpsRet := SecurityGroups{}
 
-	in := &ec2.DescribeSecurityGroupsInput{
-		MaxResults: aws.Int32(100),
-	}
+	in := &ec2.DescribeSecurityGroupsInput{}
 
-	if len(secGrpNames) > 0 && len(secGrpIDs) > 0 {
-		return secGrpsRet, errors.New("You must specify either SecuritGroupIDs or SecurityGroupNames. Not both at once.")
-	}
-
-	if len(secGrpNames) > 0 {
-		in.GroupNames = secGrpNames
-	}
-	if len(secGrpIDs) > 0 {
-		in.GroupIds = secGrpIDs
-	}
+	in.MaxResults = aws.Int32(1000) // it's not allowed to set in.MaxResults together with in.GroupIds
 
 	for {
 		out, err := a.ec2.DescribeSecurityGroups(context.TODO(), in)
@@ -111,9 +98,9 @@ func (a *AWS) GetSecurityGroups(secGrpNames, secGrpIDs []string) (SecurityGroups
 	return secGrpsRet, nil
 }
 
-func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used SecurityGroups, unused SecurityGroups, err error) {
-	used = SecurityGroups{}
-	unused = SecurityGroups{}
+func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used *SecurityGroups, unused *SecurityGroups, err error) {
+	used = &SecurityGroups{}
+	unused = &SecurityGroups{}
 
 	for _, secGrp := range secGrps {
 
@@ -134,11 +121,6 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used SecurityGro
 			return used, unused, fmt.Errorf("error describing network interfaces: %w", err)
 		}
 
-		if len(out.NetworkInterfaces) == 0 {
-			extendedslog.Logger.Debugf("No ENI attached to group with Name: %s", *secGrp.SecurityGroup.GroupName)
-			err := unused.AddOrUpdate(*secGrp)
-			extendedslog.Logger.Errorf("GetNotUsedSecGrpFromENI() AddOrUpdate() of unused SecGrp failed: %s", err)
-		}
 		if len(out.NetworkInterfaces) > 0 {
 			attachedIfaces := []string{}
 			for _, iface := range out.NetworkInterfaces {
@@ -148,6 +130,10 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used SecurityGro
 			secGrp.AttachedToNetIfaces = attachedIfaces
 			err := used.AddOrUpdate(*secGrp)
 			extendedslog.Logger.Errorf("GetNotUsedSecGrpFromENI() AddOrUpdate() of used SecGrp failed: %s", err)
+		} else {
+			extendedslog.Logger.Debugf("No ENI attached to group with Name: %s", *secGrp.SecurityGroup.GroupName)
+			err := unused.AddOrUpdate(*secGrp)
+			extendedslog.Logger.Errorf("GetNotUsedSecGrpFromENI() AddOrUpdate() of unused SecGrp failed: %s", err)
 		}
 	}
 	return used, unused, nil
@@ -193,20 +179,13 @@ func (a AWS) GetCloudTrailForSecGroups(eventType CloudTrailEventType, startTime,
 }
 
 func (a AWS) getDetailsForSecGrpsFromCloudTrail(out *cloudtrail.LookupEventsOutput) SecurityGroups {
-	var groupNames, groupIDs []string
+
 	additionalDetails := SecurityGroups{}
-	secGrps := SecurityGroups{}
 
 	for _, ev := range out.Events {
 		for _, res := range ev.Resources {
 			// TODO: needs unit testing
 			if *res.ResourceType == CLOUDTRAIL_RESOURCE_TYPE {
-				// sg- indicates this is a GroupID
-				if strings.HasPrefix(*res.ResourceName, "sg-") {
-					groupIDs = UniqueAppend(groupIDs, *res.ResourceName)
-				} else {
-					groupNames = UniqueAppend(groupNames, *res.ResourceName)
-				}
 				additionalDetails[*res.ResourceName] = &SecurityGroup{
 					Creator:      *ev.Username,
 					CreationTime: ev.EventTime,
@@ -214,23 +193,13 @@ func (a AWS) getDetailsForSecGrpsFromCloudTrail(out *cloudtrail.LookupEventsOutp
 			}
 		}
 	}
-	// aws-sdk-go can't query with IDs and Names at once
-	grpsWithName, err := a.GetSecurityGroups(groupNames, []string{})
-	extendedslog.Logger.Errorf("Error getting details: %s", err)
-	secGrps.AppendAll(grpsWithName)
-	extendedslog.Logger.Errorf("GetCloudTrailForSecGroups() AddOrUpdate() failed: %s", err)
-	grpsWithID, err := a.GetSecurityGroups([]string{}, groupIDs)
-	extendedslog.Logger.Errorf("Error getting details: %s", err)
-	secGrps.AppendAll(grpsWithID)
 
-	secGrps.UpdateIfExists(additionalDetails)
-
-	return secGrps
+	return additionalDetails
 }
 
 func (a *AWS) DeleteSecurityGroup(secGrp SecurityGroup, dryrun bool) error {
 	if secGrp.SecurityGroup == nil || secGrp.SecurityGroup.GroupId == nil {
-		return fmt.Errorf("can not delte SecurityGroup without GroupId") // this should usually never happen
+		return fmt.Errorf("can not delete SecurityGroup without GroupId") // this should usually never happen
 	}
 	if secGrp.SecurityGroup.GroupName != nil {
 		extendedslog.Logger.Debugf("DeleteSecurityGroup(%v - %v), drydrun: %t", *secGrp.SecurityGroup.GroupName, *secGrp.SecurityGroup.GroupId, dryrun)

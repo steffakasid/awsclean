@@ -55,7 +55,7 @@ func TestGetSecurityGroups(t *testing.T) {
 		assert.Len(t, SUT.unusedSecGrps, 1)
 		assert.Len(t, SUT.usedSecGrps, 0)
 		assert.Contains(t, SUT.unusedSecGrps, expectedSecGrpName)
-		assert.Equal(t, "username", SUT.unusedSecGrps[expectedSecGrpName].Creator)
+		assert.Equal(t, "username", (*SUT.unusedSecGrps)[expectedSecGrpName].Creator)
 	})
 	t.Run("Success Get Created 8d Ago", func(t *testing.T) {
 		expectedSecGrpID := "6987698-1243"
@@ -80,7 +80,7 @@ func TestGetSecurityGroups(t *testing.T) {
 		assert.Len(t, SUT.unusedSecGrps, 1)
 		assert.Len(t, SUT.usedSecGrps, 0)
 		assert.Contains(t, SUT.unusedSecGrps, expectedSecGrpName)
-		assert.Equal(t, "username", SUT.unusedSecGrps[expectedSecGrpName].Creator)
+		assert.Equal(t, "username", (*SUT.unusedSecGrps)[expectedSecGrpName].Creator)
 	})
 }
 

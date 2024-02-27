@@ -3,6 +3,7 @@ package internal
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"time"
 
 	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
@@ -56,7 +57,8 @@ func (grps SecurityGroups) AppendAll(src SecurityGroups) {
 	}
 }
 
-func (grps SecurityGroups) UpdateIfExists(src SecurityGroups) {
+func (grps SecurityGroups) UpdateIfExists(src SecurityGroups) (skipped SecurityGroups) {
+	skipped = SecurityGroups{}
 	for key, val := range src {
 		if tgtObj, exists := grps.getValueByIDorName(key); exists {
 			err := tgtObj.mergeFields(*val)
@@ -65,9 +67,18 @@ func (grps SecurityGroups) UpdateIfExists(src SecurityGroups) {
 			}
 			grps[key] = tgtObj
 		} else {
-			extendedslog.Logger.Infof("%s doesn't seem to exist anymore. Skiipping.", key)
+			extendedslog.Logger.Infof("%s doesn't seem to exist anymore. Skipping Update.", key)
+			skipped[key] = val
 		}
 	}
+	return skipped
+}
+
+func (grps SecurityGroups) DeleteSkipped(skipped SecurityGroups) {
+	maps.DeleteFunc(grps, func(k string, v *SecurityGroup) bool {
+		_, exists := skipped.getValueByIDorName(k)
+		return exists
+	})
 }
 
 func (grps SecurityGroups) getValueByIDorName(idOrName string) (value *SecurityGroup, exists bool) {

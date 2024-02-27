@@ -56,7 +56,7 @@ func TestGetSecurityGroups(t *testing.T) {
 		}
 		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts2).Return(expectedOut2, nil).Once()
 
-		secGrps, err := SUT.GetSecurityGroups(nil, nil)
+		secGrps, err := SUT.GetSecurityGroups()
 		require.NoError(t, err)
 		assert.Len(t, secGrps, 2)
 		mock.AssertExpectations(t)
@@ -86,7 +86,7 @@ func TestGetSecurityGroups(t *testing.T) {
 		}
 		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts2).Return(nil, fmt.Errorf("Something went wrong")).Once()
 
-		out, err := SUT.GetSecurityGroups(nil, nil)
+		out, err := SUT.GetSecurityGroups()
 		require.Error(t, err)
 		require.EqualError(t, err, "Something went wrong")
 

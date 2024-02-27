@@ -2,6 +2,7 @@ package secgrp
 
 import (
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/steffakasid/awsclean/internal"
@@ -13,8 +14,8 @@ type SecGrp struct {
 	olderthen     *time.Duration
 	dryrun        bool
 	onlyUnused    bool
-	usedSecGrps   internal.SecurityGroups
-	unusedSecGrps internal.SecurityGroups
+	usedSecGrps   *internal.SecurityGroups
+	unusedSecGrps *internal.SecurityGroups
 }
 
 func NewInstance(awsClient *internal.AWS, olderthen *time.Duration, dryrun, onlyUnused bool) *SecGrp {
@@ -23,8 +24,8 @@ func NewInstance(awsClient *internal.AWS, olderthen *time.Duration, dryrun, only
 		olderthen:     olderthen,
 		dryrun:        dryrun,
 		onlyUnused:    onlyUnused,
-		usedSecGrps:   internal.SecurityGroups{},
-		unusedSecGrps: internal.SecurityGroups{},
+		usedSecGrps:   &internal.SecurityGroups{},
+		unusedSecGrps: &internal.SecurityGroups{},
 	}
 }
 
@@ -35,23 +36,28 @@ func (sec *SecGrp) GetSecurityGroups(startTime, endTime time.Time) error {
 
 	extendedslog.Logger.Debug("GetCloudTrailForSecGroups")
 	secGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(internal.SECURITYGROUP_CREATED, startTime, endTime)
-	secGrps.AppendAll(secGrpsFromCCTrail)
-
-	extendedslog.Logger.Debug(internal.ToJSONString(CreatedsecGrpsFromCCTrail))
 
 	// if startTime is before 90d in past we want to get additional SecurityGroups which are not in CloudTrail
+	extendedslog.Logger.Debug("GetSecurityGroups")
+	result, err := sec.awsClient.GetSecurityGroups()
+	if nil != err {
+		return fmt.Errorf("could not getSecurityGroups: %w", err)
+	}
+	secGrps.AppendAll(result)
+
+	skippedSecGrps := secGrps.UpdateIfExists(secGrpsFromCCTrail)
+	extendedslog.Logger.Debugf("After additionalDetails len(secGrps) %d", len(secGrps))
+
 	if startTime.After(time.Now().Add(ninetyDayOffset * -1)) {
-		extendedslog.Logger.Debug("GetSecurityGroups")
-		result, err := sec.awsClient.GetSecurityGroups(nil, nil)
-		if nil != err {
-			return fmt.Errorf("could not getSecurityGroups: %w", err)
-		}
-		secGrps.AppendAll(result)
+		extendedslog.Logger.Debugf("To be deleted len(skippedSecGrps) %d", len(skippedSecGrps))
+		secGrps.DeleteSkipped(skippedSecGrps)
+		extendedslog.Logger.Debugf("After delete skipped len(secGrps) %d", len(secGrps))
 	}
 
 	if sec.onlyUnused || sec.olderthen != nil {
 		extendedslog.Logger.Debug("GetNotUsedSecGrpsFromENI")
 		sec.usedSecGrps, sec.unusedSecGrps, err = sec.awsClient.GetNotUsedSecGrpsFromENI(secGrps)
+		extendedslog.Logger.Debugf("GetNotUsedSecGrpsFromENI() len(secGrps) %d", len(secGrps))
 		if err != nil {
 			return fmt.Errorf("could not get GetNotUsedSecGrpsFromENI() %w", err)
 		}
@@ -68,7 +74,7 @@ func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time) error {
 	}
 
 	if sec.onlyUnused {
-		for _, secGrp := range sec.unusedSecGrps {
+		for _, secGrp := range *sec.unusedSecGrps {
 			if secGrp.CreationTime == nil ||
 				(sec.olderthen != nil && secGrp.CreationTime.Before(time.Now().Add(*sec.olderthen*-1))) {
 				err := sec.awsClient.DeleteSecurityGroup(*secGrp, sec.dryrun)
@@ -88,13 +94,15 @@ func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time) error {
 func (sec SecGrp) GetAllSecurityGroups() internal.SecurityGroups {
 	all := internal.SecurityGroups{}
 
+	extendedslog.Logger.Debugf("GetAllSecurityGroups() len(all) %d", len(*sec.unusedSecGrps))
 	extendedslog.Logger.Debug("GetAllSecurityGroups append unused")
-	all.AppendAll(sec.unusedSecGrps)
+	maps.Copy(all, *sec.unusedSecGrps)
 
 	if !sec.onlyUnused {
+		extendedslog.Logger.Debugf("GetAllSecurityGroups() len(all) %d", len(*sec.usedSecGrps))
 		extendedslog.Logger.Debug("GetAllSecurityGroups append used")
-		all.AppendAll(sec.usedSecGrps)
+		maps.Copy(all, *sec.usedSecGrps)
 	}
-
+	extendedslog.Logger.Debugf("GetAllSecurityGroups() len(all) %d", len(all))
 	return all
 }
