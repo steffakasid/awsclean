@@ -128,7 +128,7 @@ func ebsPrintTable(vols []ec2Types.Volume) {
 	grpsTable := table.New("Volume ID", "Creation Datetime", "State")
 	for _, vol := range vols {
 		// TODO: Conditionally add Tags here.
-		grpsTable.AddRow(vol.VolumeId, vol.CreateTime.Format(time.RFC3339), vol.State)
+		grpsTable.AddRow(*vol.VolumeId, vol.CreateTime.Format(time.RFC3339), vol.State)
 	}
 	grpsTable.Print()
 }
