@@ -40,11 +40,10 @@ type AWS struct {
 	cloudtrail CloudTrail
 }
 
-type CloudTrailEventType string
+type cloudTrailEventType string
 
 const (
-	SECURITYGROUP_CREATED CloudTrailEventType = "CreateSecurityGroup"
-	SECURITYGROUP_DELETED CloudTrailEventType = "DeleteSecurityGroup"
+	SECURITYGROUP_CREATED cloudTrailEventType = "CreateSecurityGroup"
 )
 
 func NewFromInterface(ec2 Ec2client, cloudtrail CloudTrail) *AWS {
@@ -139,7 +138,7 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used *SecurityGr
 	return used, unused, nil
 }
 
-func (a AWS) GetCloudTrailForSecGroups(eventType CloudTrailEventType, startTime, endTime time.Time) SecurityGroups {
+func (a AWS) GetCloudTrailForSecGroups(startTime, endTime time.Time) SecurityGroups {
 	var nextToken string = "empty"
 
 	secGrps := SecurityGroups{}
@@ -152,7 +151,7 @@ func (a AWS) GetCloudTrailForSecGroups(eventType CloudTrailEventType, startTime,
 			LookupAttributes: []cloudtrailTypes.LookupAttribute{
 				{
 					AttributeKey:   cloudtrailTypes.LookupAttributeKeyEventName, // Todo: Need to get DeleteSecurityGroup as well and delete them from the list...
-					AttributeValue: aws.String(string(eventType)),
+					AttributeValue: aws.String(string(SECURITYGROUP_CREATED)),
 				},
 			},
 		}

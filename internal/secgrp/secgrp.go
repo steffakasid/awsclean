@@ -35,7 +35,7 @@ func (sec *SecGrp) GetSecurityGroups(startTime, endTime time.Time) error {
 	var err error
 
 	extendedslog.Logger.Debug("GetCloudTrailForSecGroups")
-	secGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(internal.SECURITYGROUP_CREATED, startTime, endTime)
+	secGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(startTime, endTime)
 
 	// if startTime is before 90d in past we want to get additional SecurityGroups which are not in CloudTrail
 	extendedslog.Logger.Debug("GetSecurityGroups")
@@ -76,7 +76,11 @@ func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time) error {
 	if sec.onlyUnused {
 		for _, secGrp := range *sec.unusedSecGrps {
 			if secGrp.CreationTime == nil ||
+				sec.olderthen == nil ||
 				(sec.olderthen != nil && secGrp.CreationTime.Before(time.Now().Add(*sec.olderthen*-1))) {
+				if sec.olderthen == nil {
+					extendedslog.Logger.Info("olderthen not set ignoring CreationTime of SecurityGroup")
+				}
 				err := sec.awsClient.DeleteSecurityGroup(*secGrp, sec.dryrun)
 				if err != nil {
 					extendedslog.Logger.Errorf("error deleting security group: %s", err)

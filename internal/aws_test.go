@@ -30,7 +30,7 @@ func TestGetSecurityGroups(t *testing.T) {
 		SUT, mock, _ := setupSUT(t)
 
 		expectedOpts := &ec2.DescribeSecurityGroupsInput{
-			MaxResults: aws.Int32(100),
+			MaxResults: aws.Int32(1000),
 		}
 		expectedOut := &ec2.DescribeSecurityGroupsOutput{
 			NextToken: &expectedToken,
@@ -43,7 +43,7 @@ func TestGetSecurityGroups(t *testing.T) {
 		}
 		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts).Return(expectedOut, nil).Once()
 		expectedOpts2 := &ec2.DescribeSecurityGroupsInput{
-			MaxResults: aws.Int32(100),
+			MaxResults: aws.Int32(1000),
 			NextToken:  aws.String(expectedToken),
 		}
 		expectedOut2 := &ec2.DescribeSecurityGroupsOutput{
@@ -68,7 +68,7 @@ func TestGetSecurityGroups(t *testing.T) {
 		SUT, mock, _ := setupSUT(t)
 
 		expectedOpts := &ec2.DescribeSecurityGroupsInput{
-			MaxResults: aws.Int32(100),
+			MaxResults: aws.Int32(1000),
 		}
 		expectedOut := &ec2.DescribeSecurityGroupsOutput{
 			NextToken: &expectedToken,
@@ -81,7 +81,7 @@ func TestGetSecurityGroups(t *testing.T) {
 		}
 		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts).Return(expectedOut, nil).Once()
 		expectedOpts2 := &ec2.DescribeSecurityGroupsInput{
-			MaxResults: aws.Int32(100),
+			MaxResults: aws.Int32(1000),
 			NextToken:  aws.String(expectedToken),
 		}
 		mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedOpts2).Return(nil, fmt.Errorf("Something went wrong")).Once()
@@ -151,8 +151,8 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		}
 		usedSecGrps, notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI(secGrps)
 		require.NoError(t, err)
-		assert.Len(t, notUsedSecGrps, 1)
-		assert.Len(t, usedSecGrps, 1)
+		assert.Len(t, *notUsedSecGrps, 1)
+		assert.Len(t, *usedSecGrps, 1)
 		mock.AssertExpectations(t)
 	})
 
@@ -202,8 +202,8 @@ func TestGetNotUsedSecGrpsFromENI(t *testing.T) {
 		usedSecGrps, notUsedSecGrps, err := SUT.GetNotUsedSecGrpsFromENI(secGrps)
 		require.Error(t, err)
 		require.EqualError(t, err, "error describing network interfaces: Something went wrong")
-		assert.Len(t, notUsedSecGrps, 0)
-		assert.Len(t, usedSecGrps, 1)
+		assert.Len(t, *notUsedSecGrps, 0)
+		assert.Len(t, *usedSecGrps, 1)
 
 		mock.AssertExpectations(t)
 	})
@@ -245,7 +245,7 @@ func TestGetCloudTrailForSecGroups(t *testing.T) {
 			},
 		}, nil)
 
-		SUT.GetCloudTrailForSecGroups(SECURITYGROUP_CREATED, starttime, endtime)
+		SUT.GetCloudTrailForSecGroups(starttime, endtime)
 
 		ec2Mock.AssertExpectations(t)
 		cloudtrailMOck.AssertExpectations(t)

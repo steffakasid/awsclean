@@ -52,9 +52,9 @@ func TestGetSecurityGroups(t *testing.T) {
 		err = SUT.GetSecurityGroups(expectedStarttime, expectedEndtime)
 		require.NoError(t, err)
 		ec2Mock.AssertExpectations(t)
-		assert.Len(t, SUT.unusedSecGrps, 1)
-		assert.Len(t, SUT.usedSecGrps, 0)
-		assert.Contains(t, SUT.unusedSecGrps, expectedSecGrpName)
+		assert.Len(t, *SUT.unusedSecGrps, 1)
+		assert.Len(t, *SUT.usedSecGrps, 0)
+		assert.Contains(t, *SUT.unusedSecGrps, expectedSecGrpName)
 		assert.Equal(t, "username", (*SUT.unusedSecGrps)[expectedSecGrpName].Creator)
 	})
 	t.Run("Success Get Created 8d Ago", func(t *testing.T) {
@@ -77,9 +77,9 @@ func TestGetSecurityGroups(t *testing.T) {
 		err = SUT.GetSecurityGroups(expectedStarttime, expectedEndtime)
 		require.NoError(t, err)
 		ec2Mock.AssertExpectations(t)
-		assert.Len(t, SUT.unusedSecGrps, 1)
-		assert.Len(t, SUT.usedSecGrps, 0)
-		assert.Contains(t, SUT.unusedSecGrps, expectedSecGrpName)
+		assert.Len(t, *SUT.unusedSecGrps, 1)
+		assert.Len(t, *SUT.usedSecGrps, 0)
+		assert.Contains(t, *SUT.unusedSecGrps, expectedSecGrpName)
 		assert.Equal(t, "username", (*SUT.unusedSecGrps)[expectedSecGrpName].Creator)
 	})
 }
@@ -114,7 +114,7 @@ func TestDeleteSecurityGroups(t *testing.T) {
 		cloudTrailMock.AssertExpectations(t)
 	})
 
-	t.Run("Success OnlyUnused", func(t *testing.T) {
+	t.Run("Success With Olderthen", func(t *testing.T) {
 		expectedSecGrpID := "6987698-1243"
 		expectedSecGrpName := "abcde-secgrp"
 		expectedEndtime, err := time.Parse(time.DateTime, "2006-01-02 15:04:05")
@@ -163,8 +163,7 @@ func mockDescribeNetIfaces(ec2Mock *mocks.MockEc2client,
 func mockDescribeSecGrps(ec2Mock *mocks.MockEc2client,
 	expectedSecGrpID, expectedSecGrpName string) {
 	expectedDescribeSecGrpsOpts := &ec2.DescribeSecurityGroupsInput{
-		MaxResults: aws.Int32(100),
-		GroupNames: []string{expectedSecGrpName},
+		MaxResults: aws.Int32(1000),
 	}
 	expectedDescribeSecGrpsOut := &ec2.DescribeSecurityGroupsOutput{
 		SecurityGroups: []ec2Types.SecurityGroup{
@@ -175,18 +174,6 @@ func mockDescribeSecGrps(ec2Mock *mocks.MockEc2client,
 		},
 	}
 	ec2Mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedDescribeSecGrpsOpts).Return(expectedDescribeSecGrpsOut, nil).Once()
-	expectedDescribeSecGrpsOpts2 := &ec2.DescribeSecurityGroupsInput{
-		MaxResults: aws.Int32(100),
-	}
-	expectedDescribeSecGrpsOut2 := &ec2.DescribeSecurityGroupsOutput{
-		SecurityGroups: []ec2Types.SecurityGroup{
-			{
-				GroupId:   aws.String(expectedSecGrpID),
-				GroupName: aws.String(expectedSecGrpName),
-			},
-		},
-	}
-	ec2Mock.EXPECT().DescribeSecurityGroups(context.TODO(), expectedDescribeSecGrpsOpts2).Return(expectedDescribeSecGrpsOut2, nil).Once()
 }
 
 func mockLookupEvents(cloudTrailMock *mocks.MockCloudTrail,
@@ -217,29 +204,4 @@ func mockLookupEvents(cloudTrailMock *mocks.MockCloudTrail,
 		},
 	}
 	cloudTrailMock.EXPECT().LookupEvents(context.TODO(), expectedLookupEventsIn).Return(expectedLookupEventsOut, nil).Once()
-	expectedLookupEventsIn2 := &cloudtrail.LookupEventsInput{
-		StartTime: &expectedStarttime,
-		EndTime:   &expectedEndtime,
-		LookupAttributes: []cloudtrailTypes.LookupAttribute{
-			{
-				AttributeKey:   cloudtrailTypes.LookupAttributeKeyEventName,
-				AttributeValue: aws.String(string(internal.SECURITYGROUP_DELETED)),
-			},
-		},
-	}
-	expectedLookupEventsOut2 := &cloudtrail.LookupEventsOutput{
-		Events: []cloudtrailTypes.Event{
-			{
-				EventTime: aws.Time(expectedEventDatetime),
-				Username:  aws.String("username"),
-				Resources: []cloudtrailTypes.Resource{
-					{
-						ResourceName: aws.String(expectedSecGrpName),
-						ResourceType: aws.String("SecurityGroup"),
-					},
-				},
-			},
-		},
-	}
-	cloudTrailMock.EXPECT().LookupEvents(context.TODO(), expectedLookupEventsIn2).Return(expectedLookupEventsOut2, nil).Once()
 }
