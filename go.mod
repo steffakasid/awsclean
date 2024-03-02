@@ -35,7 +35,7 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.5.0 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
@@ -50,11 +50,11 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.25.2
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.149.1
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.149.2
 	github.com/aws/smithy-go v1.20.1
 	github.com/google/uuid v1.6.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.2
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 )
