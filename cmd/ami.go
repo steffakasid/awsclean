@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/steffakasid/awsclean/internal"
 	"github.com/steffakasid/awsclean/internal/amiclean"
-	extendedslog "github.com/steffakasid/extended-slog"
+	eslog "github.com/steffakasid/eslog"
 
 	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
@@ -85,7 +85,7 @@ Examples:
 			viper.GetStringSlice(ignoreFlag))
 
 		err := amiclean.GetAMIs()
-		extendedslog.Logger.Fatalf("amiclean.GetAMIs() failed: %w", err)
+		eslog.Logger.Fatalf("amiclean.GetAMIs() failed: %s", err)
 
 		switch viper.GetString(outputFlag) {
 		case "json", "JSON":
@@ -122,7 +122,7 @@ Examples:
 			viper.GetStringSlice(ignoreFlag))
 
 		err := amiclean.DeleteOlderUnusedAMIs()
-		extendedslog.Logger.Fatalf("amiclean.DeleteOlderUnusedAMIs() failed: %w", err)
+		eslog.Logger.Fatalf("amiclean.DeleteOlderUnusedAMIs() failed: %s", err)
 	},
 }
 
@@ -144,9 +144,14 @@ func amiBindFlags() {
 	amiCmdPersistentFlags.BoolP(launchTplFlag, launchTplFlagSH, false, "Additionally scan launch templates for used AMIs.")
 	amiCmdPersistentFlags.StringP(accountFlag, accountFlagSH, "", "Set AWS account number to cleanup AMIs. Used to set owner information when selecting AMIs. If not set only 'self' is used.")
 
-	extendedslog.Logger.Fatalf("Failed to bind Flags: %w", viper.BindPFlags(amiCmdPersistentFlags))
-	extendedslog.Logger.Fatalf("Failed to bind Flags: %w", viper.BindPFlags(amiDeleteCmdFlags), extendedslog.Logger.Fatalf)
-	extendedslog.Logger.Fatalf("Failed to bind Flags: %w", viper.BindPFlags(amiListCmdFlags), extendedslog.Logger.Fatalf)
+	err := viper.BindPFlags(amiCmdPersistentFlags)
+	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %s", err)
+
+	err = viper.BindPFlags(amiDeleteCmdFlags)
+	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %s", err)
+
+	err = viper.BindPFlags(amiListCmdFlags)
+	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %s", err)
 }
 
 func amiPrintTable(amis []ec2Types.Image) {
@@ -160,6 +165,6 @@ func amiPrintTable(amis []ec2Types.Image) {
 
 func amiPrintJSON(amis []ec2Types.Image) {
 	out, err := json.Marshal(amis)
-	extendedslog.Logger.Fatalf("Json.Marshal(amis) failed: %w", err)
+	eslog.LogIfErrorf(err, eslog.Fatalf, "Json.Marshal(amis) failed: %s", err)
 	fmt.Print(string(out))
 }

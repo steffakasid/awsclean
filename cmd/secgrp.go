@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/steffakasid/awsclean/internal"
 	"github.com/steffakasid/awsclean/internal/secgrp"
-	extendedslog "github.com/steffakasid/extended-slog"
+	eslog "github.com/steffakasid/eslog"
 )
 
 const (
@@ -80,7 +80,7 @@ Examples:
 		secgrp, startDatetime, endDatetime := setup()
 
 		err := secgrp.GetSecurityGroups(startDatetime, endDatetime)
-		extendedslog.Logger.Fatalf("secgrp.GetSecurityGroups() failed: %w", err)
+		eslog.LogIfErrorf(err, eslog.Fatalf, "secgrp.GetSecurityGroups() failed: %s", err)
 
 		switch viper.GetString(outputFlag) {
 		case "json", "JSON":
@@ -108,7 +108,7 @@ Examples:
 		secgrp, startDatetime, endDatetime := setup()
 
 		err := secgrp.DeleteSecurityGroups(startDatetime, endDatetime)
-		extendedslog.Logger.Fatalf("secgrp.DeleteSecurityGroups() failed: %w", err)
+		eslog.LogIfErrorf(err, eslog.Fatalf, "secgrp.DeleteSecurityGroups() failed: %s", err)
 	},
 }
 
@@ -129,9 +129,14 @@ func secGrpBindFlags() {
 	secGrpCmd.AddCommand(secGrpListCmd)
 	secGrpCmd.AddCommand(secGrpDeleteCmd)
 
-	extendedslog.Logger.Fatalf("Failed to bind flags: %w", viper.BindPFlags(secGrpCmdPersistentFlags))
-	extendedslog.Logger.Fatalf("Failed to bind flags: %w", viper.BindPFlags(secGrpDeleteCmdFlags))
-	extendedslog.Logger.Fatalf("Failed to bind flags: %w", viper.BindPFlags(secGrpListCmdFlags))
+	err := viper.BindPFlags(secGrpCmdPersistentFlags)
+	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %w", err)
+
+	err = viper.BindPFlags(secGrpDeleteCmdFlags)
+	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %w", err)
+
+	err = viper.BindPFlags(secGrpListCmdFlags)
+	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %w", err)
 }
 
 func setup() (*secgrp.SecGrp, time.Time, time.Time) {
@@ -141,10 +146,10 @@ func setup() (*secgrp.SecGrp, time.Time, time.Time) {
 	secgrp := secgrp.NewInstance(awsClient, &olderthenDuration, viper.GetBool(dryrunFlag), viper.GetBool(onlyUnusedFlag))
 
 	startDatetime, err := time.Parse(time.RFC3339, viper.GetString(startTimeFlag))
-	extendedslog.Logger.Fatalf("Error parsing given %[2]s: %[1]w", err, startTimeFlag)
+	eslog.LogIfErrorf(err, eslog.Fatalf, "Error parsing given %s: %s", startTimeFlag, err)
 
 	endDatetime, err := time.Parse(time.RFC3339, viper.GetString(endTimeFlag))
-	extendedslog.Logger.Fatalf("Weeoe parsing given %[2]s: %[2]w", err, endTimeFlag)
+	eslog.LogIfErrorf(err, eslog.Fatalf, "Error parsing given %s: %s", endTimeFlag, err)
 	return secgrp, startDatetime, endDatetime
 }
 
@@ -164,6 +169,6 @@ func secGrpPrintTable(grps internal.SecurityGroups) {
 
 func secGrpPrintJSON(grps internal.SecurityGroups) {
 	out, err := json.Marshal(grps)
-	extendedslog.Logger.Fatalf("Json.Marshal(grps) failed: %w", err)
+	eslog.LogIfErrorf(err, eslog.Fatalf, "Json.Marshal(grps) failed: %s", err)
 	fmt.Print(string(out))
 }

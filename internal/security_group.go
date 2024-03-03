@@ -7,7 +7,7 @@ import (
 	"time"
 
 	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	extendedslog "github.com/steffakasid/extended-slog"
+	"github.com/steffakasid/eslog"
 )
 
 type SecurityGroup struct {
@@ -34,9 +34,7 @@ func (grps SecurityGroups) AddOrUpdate(grpToAdd SecurityGroup) error {
 
 	if grp, exists := grps[groupName]; exists {
 		err := grp.mergeFields(grpToAdd)
-		if err != nil {
-			extendedslog.Logger.Error(fmt.Errorf("error in AddOrUpdate(): %w", err))
-		}
+		eslog.LogIfErrorf(err, eslog.Errorf, "error in AddOrUpdate(): %s", &err)
 	} else {
 		grps[groupName] = &grpToAdd
 	}
@@ -47,9 +45,8 @@ func (grps SecurityGroups) AppendAll(src SecurityGroups) {
 	for key, val := range src {
 		if tgtObj, exists := grps.getValueByIDorName(key); exists {
 			err := tgtObj.mergeFields(*val)
-			if err != nil {
-				extendedslog.Logger.Error(fmt.Errorf("error in AppendAll(): %w", err))
-			}
+			eslog.LogIfErrorf(err, eslog.Errorf, "error in AppendAll(): %s", err)
+
 			grps[key] = tgtObj
 		} else {
 			grps[key] = val
@@ -62,12 +59,11 @@ func (grps SecurityGroups) UpdateIfExists(src SecurityGroups) (skipped SecurityG
 	for key, val := range src {
 		if tgtObj, exists := grps.getValueByIDorName(key); exists {
 			err := tgtObj.mergeFields(*val)
-			if err != nil {
-				extendedslog.Logger.Error(fmt.Errorf("error in UpdateIfExists(): %w", err))
-			}
+			eslog.LogIfErrorf(err, eslog.Errorf, "error in UpdateIfExists(): %s", err)
+
 			grps[key] = tgtObj
 		} else {
-			extendedslog.Logger.Infof("%s doesn't seem to exist anymore. Skipping Update.", key)
+			eslog.Logger.Infof("%s doesn't seem to exist anymore. Skipping Update.", key)
 			skipped[key] = val
 		}
 	}

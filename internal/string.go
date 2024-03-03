@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"regexp"
 
-	extendedslog "github.com/steffakasid/extended-slog"
+	"github.com/steffakasid/eslog"
 )
 
 func Contains(arr []string, elem string) bool {
@@ -38,7 +38,7 @@ func MatchAny(str string, regExps []string) (bool, error) {
 
 func ToJSONString(obj any) string {
 	bt, err := json.Marshal(obj)
-	extendedslog.Logger.Error(err)
+	eslog.LogIfError(err, eslog.Error, err)
 
 	return string(bt)
 }

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/steffakasid/awsclean/internal"
-	extendedslog "github.com/steffakasid/extended-slog"
+	eslog "github.com/steffakasid/eslog"
 )
 
 type SecGrp struct {
@@ -34,11 +34,11 @@ func (sec *SecGrp) GetSecurityGroups(startTime, endTime time.Time) error {
 	secGrps := internal.SecurityGroups{}
 	var err error
 
-	extendedslog.Logger.Debug("GetCloudTrailForSecGroups")
+	eslog.Logger.Debug("GetCloudTrailForSecGroups")
 	secGrpsFromCCTrail := sec.awsClient.GetCloudTrailForSecGroups(startTime, endTime)
 
 	// if startTime is before 90d in past we want to get additional SecurityGroups which are not in CloudTrail
-	extendedslog.Logger.Debug("GetSecurityGroups")
+	eslog.Logger.Debug("GetSecurityGroups")
 	result, err := sec.awsClient.GetSecurityGroups()
 	if nil != err {
 		return fmt.Errorf("could not getSecurityGroups: %w", err)
@@ -46,24 +46,24 @@ func (sec *SecGrp) GetSecurityGroups(startTime, endTime time.Time) error {
 	secGrps.AppendAll(result)
 
 	skippedSecGrps := secGrps.UpdateIfExists(secGrpsFromCCTrail)
-	extendedslog.Logger.Debugf("After additionalDetails len(secGrps) %d", len(secGrps))
+	eslog.Logger.Debugf("After additionalDetails len(secGrps) %d", len(secGrps))
 
 	if startTime.After(time.Now().Add(ninetyDayOffset * -1)) {
-		extendedslog.Logger.Debugf("To be deleted len(skippedSecGrps) %d", len(skippedSecGrps))
+		eslog.Logger.Debugf("To be deleted len(skippedSecGrps) %d", len(skippedSecGrps))
 		secGrps.DeleteSkipped(skippedSecGrps)
-		extendedslog.Logger.Debugf("After delete skipped len(secGrps) %d", len(secGrps))
+		eslog.Logger.Debugf("After delete skipped len(secGrps) %d", len(secGrps))
 	}
 
 	if sec.onlyUnused || sec.olderthen != nil {
-		extendedslog.Logger.Debug("GetNotUsedSecGrpsFromENI")
+		eslog.Logger.Debug("GetNotUsedSecGrpsFromENI")
 		sec.usedSecGrps, sec.unusedSecGrps, err = sec.awsClient.GetNotUsedSecGrpsFromENI(secGrps)
-		extendedslog.Logger.Debugf("GetNotUsedSecGrpsFromENI() len(secGrps) %d", len(secGrps))
+		eslog.Logger.Debugf("GetNotUsedSecGrpsFromENI() len(secGrps) %d", len(secGrps))
 		if err != nil {
 			return fmt.Errorf("could not get GetNotUsedSecGrpsFromENI() %w", err)
 		}
 	}
 
-	extendedslog.Logger.Debug("secgrp.go GetSecurityGroups returning no error")
+	eslog.Logger.Debug("secgrp.go GetSecurityGroups returning no error")
 	return nil
 }
 
@@ -79,14 +79,14 @@ func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time) error {
 				sec.olderthen == nil ||
 				(sec.olderthen != nil && secGrp.CreationTime.Before(time.Now().Add(*sec.olderthen*-1))) {
 				if sec.olderthen == nil {
-					extendedslog.Logger.Info("olderthen not set ignoring CreationTime of SecurityGroup")
+					eslog.Logger.Info("olderthen not set ignoring CreationTime of SecurityGroup")
 				}
 				err := sec.awsClient.DeleteSecurityGroup(*secGrp, sec.dryrun)
 				if err != nil {
-					extendedslog.Logger.Errorf("error deleting security group: %s", err)
+					eslog.Logger.Errorf("error deleting security group: %s", err)
 				}
 			} else {
-				extendedslog.Logger.Infof("Skipping because of CreationDate %s - %s: %s", *secGrp.SecurityGroup.GroupName, *secGrp.SecurityGroup.GroupId, secGrp.CreationTime.Format(time.RFC3339))
+				eslog.Logger.Infof("Skipping because of CreationDate %s - %s: %s", *secGrp.SecurityGroup.GroupName, *secGrp.SecurityGroup.GroupId, secGrp.CreationTime.Format(time.RFC3339))
 			}
 		}
 	} else {
@@ -98,15 +98,15 @@ func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time) error {
 func (sec SecGrp) GetAllSecurityGroups() internal.SecurityGroups {
 	all := internal.SecurityGroups{}
 
-	extendedslog.Logger.Debugf("GetAllSecurityGroups() len(all) %d", len(*sec.unusedSecGrps))
-	extendedslog.Logger.Debug("GetAllSecurityGroups append unused")
+	eslog.Logger.Debugf("GetAllSecurityGroups() len(all) %d", len(*sec.unusedSecGrps))
+	eslog.Logger.Debug("GetAllSecurityGroups append unused")
 	maps.Copy(all, *sec.unusedSecGrps)
 
 	if !sec.onlyUnused {
-		extendedslog.Logger.Debugf("GetAllSecurityGroups() len(all) %d", len(*sec.usedSecGrps))
-		extendedslog.Logger.Debug("GetAllSecurityGroups append used")
+		eslog.Logger.Debugf("GetAllSecurityGroups() len(all) %d", len(*sec.usedSecGrps))
+		eslog.Logger.Debug("GetAllSecurityGroups append used")
 		maps.Copy(all, *sec.usedSecGrps)
 	}
-	extendedslog.Logger.Debugf("GetAllSecurityGroups() len(all) %d", len(all))
+	eslog.Logger.Debugf("GetAllSecurityGroups() len(all) %d", len(all))
 	return all
 }

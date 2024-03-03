@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/steffakasid/awsclean/internal"
 	"github.com/steffakasid/awsclean/internal/ebsclean"
-	extendedslog "github.com/steffakasid/extended-slog"
+	eslog "github.com/steffakasid/eslog"
 )
 
 const (
@@ -120,8 +120,11 @@ func ebsBindFlags() {
 	ebsListCmdFlags := ebsListCmd.Flags()
 	listOnlyFlags(ebsListCmdFlags, objType)
 
-	extendedslog.Logger.Fatalf("Failed to bind Flags: %w", viper.BindPFlags(ebsListCmdFlags))
-	extendedslog.Logger.Fatalf("Failed to bind Flags: %w", viper.BindPFlags(ebsDeleteCmdFlags))
+	err := viper.BindPFlags(ebsListCmdFlags)
+	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %w", err)
+
+	err = viper.BindPFlags(ebsDeleteCmdFlags)
+	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %w", err)
 }
 
 func ebsPrintTable(vols []ec2Types.Volume) {
@@ -135,6 +138,6 @@ func ebsPrintTable(vols []ec2Types.Volume) {
 
 func ebsPrintJSON(vols []ec2Types.Volume) {
 	out, err := json.Marshal(vols)
-	extendedslog.Logger.Fatalf("Json.Marshal(vols) failed: %w", err)
+	eslog.LogIfErrorf(err, eslog.Fatalf, "Json.Marshal(vols) failed: %s", err)
 	fmt.Print(string(out))
 }

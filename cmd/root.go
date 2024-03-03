@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/steffakasid/awsclean/internal"
-	extendedslog "github.com/steffakasid/extended-slog"
+	"github.com/steffakasid/eslog"
 )
 
 // Constants used in command flags
@@ -92,7 +92,8 @@ func bindPersistentFlags() {
 	peristentFlags.StringP(debugFlag, "", "info", "Enable debugging. Possible Values [debug,info,warn,error,fatal]")
 	peristentFlags.StringP(outputFlag, "", "table", "Define how to output results [table, json] (default: table)")
 
-	extendedslog.Logger.Fatalf("Failed to bind Flags: %w", viper.BindPFlags(peristentFlags))
+	err := viper.BindPFlags(peristentFlags)
+	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %s", err)
 }
 
 func deleteOnlyFlags(flagset *pflag.FlagSet, objType string) {
@@ -115,7 +116,7 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	} else {
 		home, err := os.UserHomeDir()
-		extendedslog.Logger.Fatalf("Can not get os.UserHomeDir(): %w", err)
+		eslog.LogIfErrorf(err, eslog.Fatalf, "Can not get os.UserHomeDir(): %w", err)
 
 		viper.AddConfigPath(home)
 		viper.SetConfigType("yaml")
@@ -127,11 +128,11 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	} else {
-		extendedslog.Logger.Error(err) // Just to show the error from ReadInConfig
+		eslog.Error(err) // Just to show the error from ReadInConfig
 	}
 
-	err := extendedslog.Logger.SetLogLevel(viper.GetString(debugFlag))
-	extendedslog.Logger.Error(err)
+	err := eslog.Logger.SetLogLevel(viper.GetString(debugFlag))
+	eslog.LogIfError(err, eslog.Error, err)
 }
 
 func nilCheck(tocheck *string) string {
