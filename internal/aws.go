@@ -71,6 +71,7 @@ func (a *AWS) GetSecurityGroups() (SecurityGroups, error) {
 
 	in.MaxResults = aws.Int32(1000) // it's not allowed to set in.MaxResults together with in.GroupIds
 
+	// TODO: must use Go routines
 	for {
 		out, err := a.ec2.DescribeSecurityGroups(context.TODO(), in)
 		eslog.LogIfError(err, eslog.Error, err)
@@ -97,10 +98,12 @@ func (a *AWS) GetSecurityGroups() (SecurityGroups, error) {
 	return secGrpsRet, nil
 }
 
+// TODO: move to secgrp.go or security_group.go
 func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used *SecurityGroups, unused *SecurityGroups, err error) {
 	used = &SecurityGroups{}
 	unused = &SecurityGroups{}
 
+	// TODO: must use go routines
 	for _, secGrp := range secGrps {
 
 		filter := *secGrp.SecurityGroup.GroupName
@@ -138,11 +141,13 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used *SecurityGr
 	return used, unused, nil
 }
 
+// TODO: move to secgrp.go
 func (a AWS) GetCloudTrailForSecGroups(startTime, endTime time.Time) SecurityGroups {
 	var nextToken string = "empty"
 
 	secGrps := SecurityGroups{}
 
+	// TODO: must use go routines
 	for nextToken != "" {
 		time.Sleep(5 * time.Second)
 		lookup := &cloudtrail.LookupEventsInput{

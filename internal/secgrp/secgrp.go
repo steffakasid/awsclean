@@ -51,9 +51,11 @@ func (sec *SecGrp) GetSecurityGroups(startTime, endTime time.Time) error {
 	if startTime.After(time.Now().Add(ninetyDayOffset * -1)) {
 		eslog.Logger.Debugf("To be deleted len(skippedSecGrps) %d", len(skippedSecGrps))
 		secGrps.DeleteSkipped(skippedSecGrps)
+		// TODO: delete if creationDate is to old
 		eslog.Logger.Debugf("After delete skipped len(secGrps) %d", len(secGrps))
 	}
 
+	// TODO: olderthen is not used here, we could filter and only return secgrps which are olderthen
 	if sec.onlyUnused || sec.olderthen != nil {
 		eslog.Logger.Debug("GetNotUsedSecGrpsFromENI")
 		sec.usedSecGrps, sec.unusedSecGrps, err = sec.awsClient.GetNotUsedSecGrpsFromENI(secGrps)
@@ -90,7 +92,7 @@ func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time) error {
 			}
 		}
 	} else {
-		// I guess trying to delete used SwcurityGroups will not work. So Idid not implement it
+		// I guess trying to delete used SwcurityGroups will not work. So I did not implement it
 	}
 	return nil
 }
