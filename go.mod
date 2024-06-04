@@ -2,7 +2,7 @@ module github.com/steffakasid/awsclean
 
 go 1.22.2
 
-toolchain go1.22.3
+toolchain go1.22.4
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.17
@@ -50,7 +50,7 @@ require (
 require (
 	github.com/aws/aws-sdk-go-v2 v1.27.1
 	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.40.1
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.162.1
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.163.0
 	github.com/google/uuid v1.6.0
 	github.com/rodaine/table v1.2.0
 	github.com/spf13/cobra v1.8.0
