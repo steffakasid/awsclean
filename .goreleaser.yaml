@@ -1,3 +1,5 @@
+---
+version: 2
 # This is an example .goreleaser.yml file with some sensible defaults.
 # Make sure to check the documentation at https://goreleaser.com
 before:
@@ -41,7 +43,7 @@ brews:
 
     # Folder inside the repository to put the formula.
     # Default is the root folder.
-    folder: Formula
+    directory: Formula
 
     homepage: "https://github.com/steffakasid/trivy-project-scanner"
     description: "This tool can be used to cleanup old amis which are unused"
