@@ -3,7 +3,7 @@ module github.com/steffakasid/awsclean
 go 1.22.5
 
 require (
-	github.com/aws/aws-sdk-go-v2/config v1.27.43
+	github.com/aws/aws-sdk-go-v2/config v1.28.0
 	github.com/xhit/go-str2duration/v2 v2.1.0
 )
 
