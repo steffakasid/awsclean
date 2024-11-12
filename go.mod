@@ -8,6 +8,7 @@ require (
 )
 
 require (
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.6 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.45 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.19 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.23 // indirect
@@ -46,6 +47,7 @@ require (
 require (
 	github.com/aws/aws-sdk-go-v2 v1.32.4
 	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.45.0
+	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.43.2
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.189.0
 	github.com/google/uuid v1.6.0
 	github.com/rodaine/table v1.3.0

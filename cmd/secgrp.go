@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	secGrpCmdName       = "securitzGroups"
+	secGrpCmdName       = "securityGroups"
 	secGrpListCmdName   = "list"
 	secGrpDeleteCmdName = "delete"
 )

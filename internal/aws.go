@@ -6,12 +6,15 @@ package internal
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
 	cloudtrailTypes "github.com/aws/aws-sdk-go-v2/service/cloudtrail/types"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
+	cloudwatchlogsTypes "github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/steffakasid/eslog"
@@ -35,9 +38,14 @@ type CloudTrail interface {
 	LookupEvents(ctx context.Context, params *cloudtrail.LookupEventsInput, optFns ...func(*cloudtrail.Options)) (*cloudtrail.LookupEventsOutput, error)
 }
 
+type CloudWatchLogs interface {
+	DescribeLogGroups(ctx context.Context, params *cloudwatchlogs.DescribeLogGroupsInput, optFns ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.DescribeLogGroupsOutput, error)
+}
+
 type AWS struct {
-	ec2        Ec2client
-	cloudtrail CloudTrail
+	ec2            Ec2client
+	cloudtrail     CloudTrail
+	cloudwatchlogs CloudWatchLogs
 }
 
 type cloudTrailEventType string
@@ -58,6 +66,8 @@ func NewAWSClient() *AWS {
 
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	eslog.LogIfErrorf(err, eslog.Fatalf, "aws.LoadDefaultConfig() failed: %d")
+
+	aws.cloudwatchlogs = cloudwatchlogs.NewFromConfig(cfg)
 
 	aws.ec2 = ec2.NewFromConfig(cfg)
 	aws.cloudtrail = cloudtrail.NewFromConfig(cfg)
@@ -330,4 +340,47 @@ func (a AWS) DeleteVolume(volumeId string, dryrun bool) error {
 
 	_, err := a.ec2.DeleteVolume(context.TODO(), opts)
 	return err
+}
+
+func (a AWS) ListLogGrps(olderthenDuration time.Duration) []cloudwatchlogsTypes.LogGroup {
+	logGroups := []cloudwatchlogsTypes.LogGroup{}
+	nextToken := ""
+	olderThen := time.Now().Add(-1 * olderthenDuration)
+	exclude := "cdaas-agent-aws-cdk-production"
+
+	eslog.Debug("ListLogGrps()")
+
+	for {
+		opts := &cloudwatchlogs.DescribeLogGroupsInput{
+			LogGroupNamePattern: aws.String("*cdaas*"),
+		}
+		if nextToken != "" {
+			opts.NextToken = &nextToken
+		}
+		logGrpsOutput, err := a.cloudwatchlogs.DescribeLogGroups(context.TODO(), opts)
+		eslog.LogIfError(err, eslog.Error, err)
+
+		if logGrpsOutput != nil {
+			for _, lgGrp := range logGrpsOutput.LogGroups {
+				eslog.Debugf("CreationTime %d < olderThen %d", *lgGrp.CreationTime, olderThen.UnixMilli())
+				if *lgGrp.CreationTime < olderThen.UnixMilli() {
+					if !strings.Contains(*lgGrp.LogGroupName, exclude) {
+						eslog.Debugf("Add logGroup: %s", *lgGrp.LogGroupName)
+						logGroups = append(logGroups, lgGrp)
+					} else {
+						eslog.Debugf("Filtered out logGroup: %s", *lgGrp.LogGroupName)
+					}
+				}
+			}
+		}
+
+		eslog.Debugf("NextToken: %v", logGrpsOutput.NextToken)
+
+		if logGrpsOutput == nil || logGrpsOutput.NextToken == nil {
+			break
+		}
+		nextToken = *logGrpsOutput.NextToken
+	}
+
+	return logGroups
 }

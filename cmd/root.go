@@ -83,6 +83,7 @@ func init() {
 	amiBindFlags()
 	ebsBindFlags()
 	secGrpBindFlags()
+	logGrpsBindFlags()
 }
 
 func bindPersistentFlags() {
