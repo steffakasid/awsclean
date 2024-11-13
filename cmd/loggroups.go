@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/steffakasid/awsclean/internal"
+	"github.com/steffakasid/awsclean/internal/loggroups"
 	eslog "github.com/steffakasid/eslog"
 )
 
@@ -73,9 +74,9 @@ Examples:
 %s`,
 		logGrpsDeleteCmdExamples),
 	Run: func(cmd *cobra.Command, args []string) {
-		// olderthenDuration := internal.ParseDuration(viper.GetString(olderthenFlag))
+		lgGrpsService, _, _ := setupLogGroups()
 
-		// awsClient := internal.NewAWSClient()
+		lgGrpsService.DeleteUnused()
 	},
 }
 
@@ -89,17 +90,14 @@ Examples:
 %s`,
 		logGrpsListCmdExamples),
 	Run: func(cmd *cobra.Command, args []string) {
-		olderthenDuration := internal.ParseDuration(viper.GetString(olderthenFlag))
 
-		awsClient := internal.NewAWSClient()
-		lgGrps := awsClient.ListLogGrps(olderthenDuration)
-		for _, lgGrp := range lgGrps {
-			fmt.Println(*lgGrp.LogGroupName)
+		lgGrpsService, _, _ := setupLogGroups()
+
+		lgGrpsService.GetCloudWatchLogGroups()
+
+		for _, lgGrp := range lgGrpsService.GetUnusedLogGroups() {
+			fmt.Printf("GroupName: %s, Retention: %v\n", *lgGrp.LogGroupName, *lgGrp.RetentionInDays)
 		}
-
-		// logGrpsclean := logGrpsclean.NewInstance(awsClient, olderthenDuration, viper.GetBool(dryrunFlag), viper.GetBool(onlyUnusedFlag))
-
-		// logGrpsclean.GetlogGrps()
 
 		// switch viper.GetString(outputFlag) {
 		// case "json", "JSON":
@@ -128,6 +126,20 @@ func logGrpsBindFlags() {
 
 	err = viper.BindPFlags(logGrpsDeleteCmdFlags)
 	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %w", err)
+}
+
+func setupLogGroups() (loggrp *loggroups.LogGrp, startDatetime time.Time, endDatetime time.Time) {
+	olderthenDuration := internal.ParseDuration(viper.GetString(olderthenFlag))
+
+	awsClient := internal.NewAWSClient()
+	loggrp = loggroups.NewInstance(awsClient, &olderthenDuration, viper.GetBool(dryrunFlag), viper.GetBool(onlyUnusedFlag))
+
+	startDatetime, err := time.Parse(time.RFC3339, viper.GetString(startTimeFlag))
+	eslog.LogIfErrorf(err, eslog.Fatalf, "Error parsing given %s: %s", startTimeFlag, err)
+
+	endDatetime, err = time.Parse(time.RFC3339, viper.GetString(endTimeFlag))
+	eslog.LogIfErrorf(err, eslog.Fatalf, "Error parsing given %s: %s", endTimeFlag, err)
+	return loggrp, startDatetime, endDatetime
 }
 
 func logGrpsPrintTable(vols []ec2Types.Volume) {

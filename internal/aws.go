@@ -6,7 +6,6 @@ package internal
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -14,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
 	cloudtrailTypes "github.com/aws/aws-sdk-go-v2/service/cloudtrail/types"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
-	cloudwatchlogsTypes "github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
+	cwlogsTypes "github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/steffakasid/eslog"
@@ -40,6 +39,7 @@ type CloudTrail interface {
 
 type CloudWatchLogs interface {
 	DescribeLogGroups(ctx context.Context, params *cloudwatchlogs.DescribeLogGroupsInput, optFns ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.DescribeLogGroupsOutput, error)
+	DeleteLogGroup(ctx context.Context, params *cloudwatchlogs.DeleteLogGroupInput, optFns ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.DeleteLogGroupOutput, error)
 }
 
 type AWS struct {
@@ -342,11 +342,9 @@ func (a AWS) DeleteVolume(volumeId string, dryrun bool) error {
 	return err
 }
 
-func (a AWS) ListLogGrps(olderthenDuration time.Duration) []cloudwatchlogsTypes.LogGroup {
-	logGroups := []cloudwatchlogsTypes.LogGroup{}
+func (a AWS) ListLogGrps() []cwlogsTypes.LogGroup {
+	logGroups := []cwlogsTypes.LogGroup{}
 	nextToken := ""
-	olderThen := time.Now().Add(-1 * olderthenDuration)
-	exclude := "cdaas-agent-aws-cdk-production"
 
 	eslog.Debug("ListLogGrps()")
 
@@ -361,17 +359,7 @@ func (a AWS) ListLogGrps(olderthenDuration time.Duration) []cloudwatchlogsTypes.
 		eslog.LogIfError(err, eslog.Error, err)
 
 		if logGrpsOutput != nil {
-			for _, lgGrp := range logGrpsOutput.LogGroups {
-				eslog.Debugf("CreationTime %d < olderThen %d", *lgGrp.CreationTime, olderThen.UnixMilli())
-				if *lgGrp.CreationTime < olderThen.UnixMilli() {
-					if !strings.Contains(*lgGrp.LogGroupName, exclude) {
-						eslog.Debugf("Add logGroup: %s", *lgGrp.LogGroupName)
-						logGroups = append(logGroups, lgGrp)
-					} else {
-						eslog.Debugf("Filtered out logGroup: %s", *lgGrp.LogGroupName)
-					}
-				}
-			}
+			logGroups = append(logGroups, logGrpsOutput.LogGroups...)
 		}
 
 		eslog.Debugf("NextToken: %v", logGrpsOutput.NextToken)
@@ -383,4 +371,18 @@ func (a AWS) ListLogGrps(olderthenDuration time.Duration) []cloudwatchlogsTypes.
 	}
 
 	return logGroups
+}
+
+func (a AWS) DeleteLogGroup(logGrpName *string, dryrun bool) error {
+	opts := &cloudwatchlogs.DeleteLogGroupInput{
+		LogGroupName: logGrpName,
+	}
+	if dryrun {
+		eslog.Infof("This would delete: %s", *logGrpName)
+		return nil
+	} else {
+		eslog.Debugf("Deleting: %s", *logGrpName)
+		_, err := a.cloudwatchlogs.DeleteLogGroup(context.TODO(), opts)
+		return err
+	}
 }
