@@ -1,4 +1,4 @@
-package loggroups
+package loggroup
 
 import (
 	"strings"

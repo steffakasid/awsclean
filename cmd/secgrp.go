@@ -77,7 +77,7 @@ Examples:
 		secGrpListCmdExamples),
 	Run: func(cmd *cobra.Command, args []string) {
 
-		secgrp, startDatetime, endDatetime := setup()
+		secgrp, startDatetime, endDatetime := setupSecGrpClient()
 
 		err := secgrp.GetSecurityGroups(startDatetime, endDatetime)
 		eslog.LogIfErrorf(err, eslog.Fatalf, "secgrp.GetSecurityGroups() failed: %s", err)
@@ -105,7 +105,7 @@ Examples:
 		secGrpDeleteCmdExamples),
 	Run: func(cmd *cobra.Command, args []string) {
 
-		secgrp, startDatetime, endDatetime := setup()
+		secgrp, startDatetime, endDatetime := setupSecGrpClient()
 
 		err := secgrp.DeleteSecurityGroups(startDatetime, endDatetime)
 		eslog.LogIfErrorf(err, eslog.Fatalf, "secgrp.DeleteSecurityGroups() failed: %s", err)
@@ -139,7 +139,7 @@ func secGrpBindFlags() {
 	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %w", err)
 }
 
-func setup() (*secgrp.SecGrp, time.Time, time.Time) {
+func setupSecGrpClient() (*secgrp.SecGrp, time.Time, time.Time) {
 	olderthenDuration := internal.ParseDuration(viper.GetString(olderthenFlag))
 
 	awsClient := internal.NewAWSClient()

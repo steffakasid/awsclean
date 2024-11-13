@@ -58,6 +58,7 @@ func NewFromInterface(ec2 Ec2client, cloudtrail CloudTrail) *AWS {
 	return &AWS{
 		ec2:        ec2,
 		cloudtrail: cloudtrail,
+		// TODO: set cloudwatchlogs as well
 	}
 }
 

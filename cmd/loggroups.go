@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"time"
 
-	ec2Types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	cwlogsTypes "github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/steffakasid/awsclean/internal"
-	"github.com/steffakasid/awsclean/internal/loggroups"
+	"github.com/steffakasid/awsclean/internal/loggroup"
 	eslog "github.com/steffakasid/eslog"
 )
 
@@ -95,16 +95,12 @@ Examples:
 
 		lgGrpsService.GetCloudWatchLogGroups()
 
-		for _, lgGrp := range lgGrpsService.GetUnusedLogGroups() {
-			fmt.Printf("GroupName: %s, Retention: %v\n", *lgGrp.LogGroupName, *lgGrp.RetentionInDays)
+		switch viper.GetString(outputFlag) {
+		case "json", "JSON":
+			logGrpsPrintJSON(lgGrpsService.GetUnusedLogGroups())
+		default:
+			logGrpsPrintTable(lgGrpsService.GetUnusedLogGroups())
 		}
-
-		// switch viper.GetString(outputFlag) {
-		// case "json", "JSON":
-		// 	logGrpsPrintJSON(logGrpsclean.GetAllVolumes())
-		// default:
-		// 	logGrpsPrintTable(logGrpsclean.GetAllVolumes())
-		// }
 	},
 }
 
@@ -113,7 +109,7 @@ func logGrpsBindFlags() {
 	logGrpsCmd.AddCommand(logGrpsListCmd)
 	rootCmd.AddCommand(logGrpsCmd)
 
-	const objType = "logGrps volumes"
+	const objType = "CloudWatchLogGrps"
 
 	logGrpsDeleteCmdFlags := logGrpsDeleteCmd.Flags()
 	deleteOnlyFlags(logGrpsDeleteCmdFlags)
@@ -128,11 +124,11 @@ func logGrpsBindFlags() {
 	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %w", err)
 }
 
-func setupLogGroups() (loggrp *loggroups.LogGrp, startDatetime time.Time, endDatetime time.Time) {
+func setupLogGroups() (loggrp *loggroup.LogGrp, startDatetime time.Time, endDatetime time.Time) {
 	olderthenDuration := internal.ParseDuration(viper.GetString(olderthenFlag))
 
 	awsClient := internal.NewAWSClient()
-	loggrp = loggroups.NewInstance(awsClient, &olderthenDuration, viper.GetBool(dryrunFlag), viper.GetBool(onlyUnusedFlag))
+	loggrp = loggroup.NewInstance(awsClient, &olderthenDuration, viper.GetBool(dryrunFlag), viper.GetBool(onlyUnusedFlag))
 
 	startDatetime, err := time.Parse(time.RFC3339, viper.GetString(startTimeFlag))
 	eslog.LogIfErrorf(err, eslog.Fatalf, "Error parsing given %s: %s", startTimeFlag, err)
@@ -142,17 +138,18 @@ func setupLogGroups() (loggrp *loggroups.LogGrp, startDatetime time.Time, endDat
 	return loggrp, startDatetime, endDatetime
 }
 
-func logGrpsPrintTable(vols []ec2Types.Volume) {
-	grpsTable := table.New("Volume ID", "Creation Datetime", "State")
-	for _, vol := range vols {
+func logGrpsPrintTable(grps []cwlogsTypes.LogGroup) {
+	grpsTable := table.New("LogGroup Name", "Creation Datetime", "Retention(d)")
+	for _, grp := range grps {
 		// TODO: Conditionally add Tags here.
-		grpsTable.AddRow(*vol.VolumeId, vol.CreateTime.Format(time.RFC3339), vol.State)
+		creationtime := time.UnixMilli(*grp.CreationTime)
+		grpsTable.AddRow(*grp.LogGroupName, creationtime, grp.RetentionInDays)
 	}
 	grpsTable.Print()
 }
 
-func logGrpsPrintJSON(vols []ec2Types.Volume) {
-	out, err := json.Marshal(vols)
+func logGrpsPrintJSON(grps []cwlogsTypes.LogGroup) {
+	out, err := json.Marshal(grps)
 	eslog.LogIfErrorf(err, eslog.Fatalf, "Json.Marshal(vols) failed: %s", err)
 	fmt.Print(string(out))
 }
