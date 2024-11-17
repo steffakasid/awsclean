@@ -107,23 +107,33 @@ Examples:
 	},
 }
 
-func ebsBindFlags() {
+func ebsCmdInit() {
 	ebsCmd.AddCommand(ebsDeleteCmd)
 	ebsCmd.AddCommand(ebsListCmd)
 	rootCmd.AddCommand(ebsCmd)
+	ebsDeleteCmd.PreRun = func(cmd *cobra.Command, args []string) {
+		ebsDeleteCmdBindFlags()
+	}
+	ebsListCmd.PreRun = func(cmd *cobra.Command, args []string) {
+		ebsListCmdBindFlags()
+	}
 
-	const objType = "EBS volumes"
+	ebsListCmdFlags := ebsListCmd.Flags()
+	listOnlyFlags(ebsListCmdFlags, "EBS volumes")
 
 	ebsDeleteCmdFlags := ebsDeleteCmd.Flags()
 	deleteOnlyFlags(ebsDeleteCmdFlags)
+}
 
-	ebsListCmdFlags := ebsListCmd.Flags()
-	listOnlyFlags(ebsListCmdFlags, objType)
-
-	err := viper.BindPFlags(ebsListCmdFlags)
+func ebsDeleteCmdBindFlags() {
+	ebsDeleteCmdFlags := ebsDeleteCmd.Flags()
+	err := viper.BindPFlags(ebsDeleteCmdFlags)
 	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %w", err)
+}
 
-	err = viper.BindPFlags(ebsDeleteCmdFlags)
+func ebsListCmdBindFlags() {
+	ebsListCmdFlags := ebsListCmd.Flags()
+	err := viper.BindPFlags(ebsListCmdFlags)
 	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %w", err)
 }
 

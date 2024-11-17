@@ -80,10 +80,14 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	bindPersistentFlags()
-	amiBindFlags()
-	ebsBindFlags()
-	secGrpBindFlags()
-	logGrpsBindFlags()
+
+	amiCmdInit()
+
+	ebsCmdInit()
+
+	logGrpsCmdInit()
+
+	secGrpCmdInit()
 }
 
 func bindPersistentFlags() {

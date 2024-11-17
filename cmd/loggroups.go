@@ -104,23 +104,31 @@ Examples:
 	},
 }
 
-func logGrpsBindFlags() {
+func logGrpsCmdInit() {
 	logGrpsCmd.AddCommand(logGrpsDeleteCmd)
 	logGrpsCmd.AddCommand(logGrpsListCmd)
 	rootCmd.AddCommand(logGrpsCmd)
-
-	const objType = "CloudWatchLogGrps"
-
+	logGrpsDeleteCmd.PreRun = func(cmd *cobra.Command, args []string) {
+		logGrpsDeleteCmdBindFlags()
+	}
+	logGrpsListCmd.PreRun = func(cmd *cobra.Command, args []string) {
+		logGrpsListCmdBindFlags()
+	}
 	logGrpsDeleteCmdFlags := logGrpsDeleteCmd.Flags()
 	deleteOnlyFlags(logGrpsDeleteCmdFlags)
-
 	logGrpsListCmdFlags := logGrpsListCmd.Flags()
-	listOnlyFlags(logGrpsListCmdFlags, objType)
+	listOnlyFlags(logGrpsListCmdFlags, "CloudWatchLogGrps")
+}
 
-	err := viper.BindPFlags(logGrpsListCmdFlags)
+func logGrpsDeleteCmdBindFlags() {
+	logGrpsDeleteCmdFlags := logGrpsDeleteCmd.Flags()
+	err := viper.BindPFlags(logGrpsDeleteCmdFlags)
 	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %w", err)
+}
 
-	err = viper.BindPFlags(logGrpsDeleteCmdFlags)
+func logGrpsListCmdBindFlags() {
+	logGrpsListCmdFlags := logGrpsListCmd.Flags()
+	err := viper.BindPFlags(logGrpsListCmdFlags)
 	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %w", err)
 }
 

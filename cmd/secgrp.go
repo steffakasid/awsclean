@@ -112,30 +112,33 @@ Examples:
 	},
 }
 
-func secGrpBindFlags() {
+func secGrpCmdInit() {
+	secGrpCmd.AddCommand(secGrpDeleteCmd)
+	secGrpCmd.AddCommand(secGrpListCmd)
 	rootCmd.AddCommand(secGrpCmd)
-
-	const objType = "SecurityGroups"
-
-	secGrpListCmdFlags := secGrpListCmd.Flags()
-	secGrpListCmdFlags.BoolP(onlyUnusedFlag, onlyUnusedFlagSH, false, "defines if only-unused SecurityGroups are listed or all [Default: false]")
-	listOnlyFlags(secGrpListCmdFlags, objType)
-
+	secGrpDeleteCmd.PreRun = func(cmd *cobra.Command, args []string) {
+		secGrpDeleteCmdBindFlags()
+	}
+	secGrpListCmd.PreRun = func(cmd *cobra.Command, args []string) {
+		secGrpListCmdBindFlags()
+	}
 	secGrpDeleteCmdFlags := secGrpDeleteCmd.Flags()
 	deleteOnlyFlags(secGrpDeleteCmdFlags)
 
-	secGrpCmdPersistentFlags := secGrpCmd.PersistentFlags()
+	secGrpListCmdFlags := secGrpListCmd.Flags()
+	secGrpListCmdFlags.BoolP(onlyUnusedFlag, onlyUnusedFlagSH, false, "defines if only-unused SecurityGroups are listed or all [Default: false]")
+	listOnlyFlags(secGrpListCmdFlags, "SecurityGroups")
+}
 
-	secGrpCmd.AddCommand(secGrpListCmd)
-	secGrpCmd.AddCommand(secGrpDeleteCmd)
-
-	err := viper.BindPFlags(secGrpCmdPersistentFlags)
+func secGrpDeleteCmdBindFlags() {
+	secGrpDeleteCmdFlags := secGrpDeleteCmd.Flags()
+	err := viper.BindPFlags(secGrpDeleteCmdFlags)
 	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %w", err)
+}
 
-	err = viper.BindPFlags(secGrpDeleteCmdFlags)
-	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %w", err)
-
-	err = viper.BindPFlags(secGrpListCmdFlags)
+func secGrpListCmdBindFlags() {
+	secGrpListCmdFlags := secGrpListCmd.Flags()
+	err := viper.BindPFlags(secGrpListCmdFlags)
 	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %w", err)
 }
 

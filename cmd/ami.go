@@ -126,30 +126,44 @@ Examples:
 	},
 }
 
-func amiBindFlags() {
+func amiCmdInit() {
 	amiCmd.AddCommand(amiDeleteCmd)
 	amiCmd.AddCommand(amiListCmd)
 	rootCmd.AddCommand(amiCmd)
+	amiCmdPersistentFlags()
 
-	const objType = "AMIs"
+	amiListCmdFlags := amiListCmd.Flags()
+	listOnlyFlags(amiListCmdFlags, "AMIs")
 	amiDeleteCmdFlags := amiDeleteCmd.Flags()
 	amiDeleteCmdFlags.StringArrayP(ignoreFlag, ignoreFlagSH, []string{}, "Set ignore regex patterns. If a ami name matches the pattern it will be exclueded from cleanup.")
 	deleteOnlyFlags(amiDeleteCmdFlags)
 
-	amiListCmdFlags := amiListCmd.Flags()
-	listOnlyFlags(amiListCmdFlags, objType)
+	amiListCmd.PreRun = func(cmd *cobra.Command, args []string) {
+		amiListCmdBindFlags()
+	}
+	amiDeleteCmd.PreRun = func(cmd *cobra.Command, args []string) {
+		amiDeleteCmdBindFlags()
+	}
+}
 
+func amiCmdPersistentFlags() {
 	amiCmdPersistentFlags := amiCmd.PersistentFlags()
 	amiCmdPersistentFlags.BoolP(launchTplFlag, launchTplFlagSH, false, "Additionally scan launch templates for used AMIs.")
 	amiCmdPersistentFlags.StringP(accountFlag, accountFlagSH, "", "Set AWS account number to cleanup AMIs. Used to set owner information when selecting AMIs. If not set only 'self' is used.")
 
 	err := viper.BindPFlags(amiCmdPersistentFlags)
 	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %s", err)
+}
 
-	err = viper.BindPFlags(amiDeleteCmdFlags)
+func amiListCmdBindFlags() {
+	amiListCmdFlags := amiListCmd.Flags()
+	err := viper.BindPFlags(amiListCmdFlags)
 	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %s", err)
+}
 
-	err = viper.BindPFlags(amiListCmdFlags)
+func amiDeleteCmdBindFlags() {
+	amiDeleteCmdFlags := amiDeleteCmd.Flags()
+	err := viper.BindPFlags(amiDeleteCmdFlags)
 	eslog.LogIfErrorf(err, eslog.Fatalf, "Failed to bind Flags: %s", err)
 }
 
