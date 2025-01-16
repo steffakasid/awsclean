@@ -100,6 +100,8 @@ func (tgt *SecurityGroup) mergeFields(src SecurityGroup) error {
 	}
 
 	if src.SecurityGroup != tgt.SecurityGroup {
+
+		//nolint:staticcheck
 		if src.SecurityGroup == nil && tgt.SecurityGroup != nil {
 			// nothing to do as target alrwady have the data
 		} else if src.SecurityGroup != nil && tgt.SecurityGroup == nil {

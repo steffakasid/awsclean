@@ -363,11 +363,11 @@ func (a AWS) ListLogGrps() []cwlogsTypes.LogGroup {
 			logGroups = append(logGroups, logGrpsOutput.LogGroups...)
 		}
 
-		eslog.Debugf("NextToken: %v", logGrpsOutput.NextToken)
-
 		if logGrpsOutput == nil || logGrpsOutput.NextToken == nil {
+			eslog.Debug("NextToken is nil")
 			break
 		}
+		eslog.Debugf("NextToken (not nil): %v", logGrpsOutput.NextToken)
 		nextToken = *logGrpsOutput.NextToken
 	}
 

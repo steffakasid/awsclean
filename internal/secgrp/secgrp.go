@@ -74,7 +74,7 @@ func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time) error {
 	if err != nil {
 		return err
 	}
-
+	//nolint:staticcheck
 	if sec.onlyUnused {
 		for _, secGrp := range *sec.unusedSecGrps {
 			if secGrp.CreationTime == nil ||

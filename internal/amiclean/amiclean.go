@@ -58,9 +58,6 @@ func (a *AmiClean) GetAMIs() error {
 	for _, image := range images {
 		if !internal.Contains(usedAMIs, *image.ImageId) {
 
-			if err != nil {
-				eslog.Error(err)
-			}
 			a.unusedAMIs = append(a.unusedAMIs, image)
 		} else {
 			a.usedAMIs = append(a.usedAMIs, image)
