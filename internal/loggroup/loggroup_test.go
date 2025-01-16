@@ -112,7 +112,7 @@ func TestDeleteUnusedWithMock(t *testing.T) {
 	}).Return(&cloudwatchlogs.DeleteLogGroupOutput{}, nil)
 
 	olderThen := 24 * time.Hour
-	logGrp := NewInstance(awsClient, &olderThen, true, false)
+	logGrp := NewInstance(awsClient, &olderThen, false, false)
 
 	logGrp.DeleteUnused()
 
