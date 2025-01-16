@@ -19,7 +19,8 @@ import (
 func setupSUT(t *testing.T) (*AWS, *mocks.MockEc2client, *mocks.MockCloudTrail) {
 	ec2ClientMock := mocks.NewMockEc2client(t)
 	cloudTrailMock := mocks.NewMockCloudTrail(t)
-	SUT := NewFromInterface(ec2ClientMock, cloudTrailMock)
+	cloudWatchLogsMock := mocks.NewMockCloudWatchLogs(t)
+	SUT := NewFromInterface(ec2ClientMock, cloudTrailMock, cloudWatchLogsMock)
 	return SUT, ec2ClientMock, cloudTrailMock
 }
 

@@ -17,7 +17,7 @@ import (
 	"github.com/xhit/go-str2duration/v2"
 )
 
-func setupSUT(t *testing.T,
+func setupSUT(
 	olderthen time.Duration,
 	awsaccount string,
 	dryrun bool,
@@ -27,7 +27,8 @@ func setupSUT(t *testing.T,
 	ec2ClientMock := &mocks.MockEc2client{}
 	cloudTrailMock := &mocks.MockCloudTrail{}
 
-	awsClient := internal.NewFromInterface(ec2ClientMock, cloudTrailMock)
+	cloudWatchLogsMock := &mocks.MockCloudWatchLogs{}
+	awsClient := internal.NewFromInterface(ec2ClientMock, cloudTrailMock, cloudWatchLogsMock)
 	return NewInstance(awsClient, olderthen, awsaccount, dryrun, onlyUnused, useLaunchTpls, ignorePatterns), ec2ClientMock, cloudTrailMock
 }
 
@@ -46,7 +47,7 @@ func TestGetUsedAmis(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 
-		amiclean, ec2ClientMock, _ := setupSUT(t, defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
+		amiclean, ec2ClientMock, _ := setupSUT(defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
 
 		mockDescribeInstances(1, ec2ClientMock)
 
@@ -69,8 +70,7 @@ func TestGetUsedAmis(t *testing.T) {
 	})
 
 	t.Run("With Paging", func(t *testing.T) {
-		amiclean, ec2ClientMock, _ := setupSUT(t, defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
-
+		amiclean, ec2ClientMock, _ := setupSUT(defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
 		mockDescribeInstances(4, ec2ClientMock)
 
 		expectedImgIn := &ec2.DescribeImagesInput{Owners: []string{"self"}}
@@ -94,7 +94,7 @@ func TestGetUsedAmis(t *testing.T) {
 
 	t.Run("Additionally from Launch Templates", func(t *testing.T) {
 		const useLaunchTpls = true
-		amiclean, ec2ClientMock, _ := setupSUT(t, defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, useLaunchTpls, noFilterPatterns)
+		amiclean, ec2ClientMock, _ := setupSUT(defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, useLaunchTpls, noFilterPatterns)
 
 		mockDescribeInstances(2, ec2ClientMock)
 		mockDescribeLaunchTemplateVersions(2, ec2ClientMock)
@@ -117,7 +117,7 @@ func TestGetUsedAmis(t *testing.T) {
 	})
 
 	t.Run("Error DescribeInstances", func(t *testing.T) {
-		amiclean, ec2ClientMock, _ := setupSUT(t, defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
+		amiclean, ec2ClientMock, _ := setupSUT(defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
 
 		mockDescribeInstances(2, ec2ClientMock, 2)
 
@@ -144,7 +144,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 	assert.NoError(t, err)
 
 	t.Run("Success", func(t *testing.T) {
-		amiclean, ec2ClientMock, _ := setupSUT(t, defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
+		amiclean, ec2ClientMock, _ := setupSUT(defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
 
 		mockDescribeInstances(1, ec2ClientMock)
 
@@ -169,7 +169,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 
 	t.Run("With AWS Account", func(t *testing.T) {
 		const awsaccount = "1234568"
-		amiclean, ec2ClientMock, _ := setupSUT(t, defaultOlderthen, awsaccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
+		amiclean, ec2ClientMock, _ := setupSUT(defaultOlderthen, awsaccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
 
 		mockDescribeInstances(2, ec2ClientMock, 2)
 
@@ -193,7 +193,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 	})
 
 	t.Run("Dry Run", func(t *testing.T) {
-		amiclean, ec2ClientMock, _ := setupSUT(t, defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
+		amiclean, ec2ClientMock, _ := setupSUT(defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
 		input := &ec2.DescribeImagesInput{Owners: []string{"self", "123456"}}
 		olderthen, err := str2duration.ParseDuration("7h")
 		assert.NoError(t, err)
@@ -223,7 +223,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 
 	// TODO: validate that this really works
 	t.Run("With Duration", func(t *testing.T) {
-		amiclean, ec2ClientMock, _ := setupSUT(t, defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
+		amiclean, ec2ClientMock, _ := setupSUT(defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
 		mockDescribeInstances(1, ec2ClientMock)
 
 		input := &ec2.DescribeImagesInput{Owners: []string{"self"}}
@@ -254,7 +254,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 	})
 
 	t.Run("With Used AMIs", func(t *testing.T) {
-		amiclean, ec2ClientMock, _ := setupSUT(t, defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
+		amiclean, ec2ClientMock, _ := setupSUT(defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
 
 		usedAMIs := mockDescribeInstances(1, ec2ClientMock)
 
@@ -285,7 +285,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 
 	t.Run("With Filter Patterns", func(t *testing.T) {
 		ignorePatterns := []string{"^my-image.*", ".*ed.*"}
-		amiclean, ec2ClientMock, _ := setupSUT(t, defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, ignorePatterns)
+		amiclean, ec2ClientMock, _ := setupSUT(defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, ignorePatterns)
 
 		mockDescribeInstances(2, ec2ClientMock, 2)
 
@@ -321,7 +321,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 	t.Run("Complete Filter Logic", func(t *testing.T) {
 		const awsaccount = "123456"
 		ignorePatterns := []string{"^filtered.*"}
-		amiclean, ec2ClientMock, _ := setupSUT(t, defaultOlderthen, awsaccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, ignorePatterns)
+		amiclean, ec2ClientMock, _ := setupSUT(defaultOlderthen, awsaccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, ignorePatterns)
 
 		usedAMIs := mockDescribeInstances(1, ec2ClientMock)
 
@@ -363,7 +363,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 	})
 
 	t.Run("Error DescribeImages", func(t *testing.T) {
-		amiclean, ec2ClientMock, _ := setupSUT(t, defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
+		amiclean, ec2ClientMock, _ := setupSUT(defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
 
 		mockDescribeInstances(1, ec2ClientMock)
 
@@ -376,7 +376,7 @@ func TestDeleteOlderUnusedAMIs(t *testing.T) {
 	})
 
 	t.Run("Error DeregeisterImage", func(t *testing.T) {
-		amiclean, ec2ClientMock, _ := setupSUT(t, defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
+		amiclean, ec2ClientMock, _ := setupSUT(defaultOlderthen, noAWSAccount, noDryrun, notOnlyUnused, dontUseLaunchTpls, noFilterPatterns)
 
 		mockDescribeInstances(2, ec2ClientMock)
 

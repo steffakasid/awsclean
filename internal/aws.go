@@ -54,11 +54,11 @@ const (
 	SECURITYGROUP_CREATED cloudTrailEventType = "CreateSecurityGroup"
 )
 
-func NewFromInterface(ec2 Ec2client, cloudtrail CloudTrail) *AWS {
+func NewFromInterface(ec2 Ec2client, cloudtrail CloudTrail, cloudwatchlos CloudWatchLogs) *AWS {
 	return &AWS{
-		ec2:        ec2,
-		cloudtrail: cloudtrail,
-		// TODO: set cloudwatchlogs as well
+		ec2:            ec2,
+		cloudtrail:     cloudtrail,
+		cloudwatchlogs: cloudwatchlos,
 	}
 }
 

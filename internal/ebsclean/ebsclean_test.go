@@ -18,19 +18,20 @@ import (
 )
 
 // TODO: needs refactoring
-func setupSUT(t *testing.T, ec2ClientMock *mocks.MockEc2client, cloudTrailMock *mocks.MockCloudTrail) *EBSClean {
+func setupSUT(t *testing.T, ec2ClientMock *mocks.MockEc2client, cloudTrailMock *mocks.MockCloudTrail, cloudWatchLogsMock *mocks.MockCloudWatchLogs) *EBSClean {
 	olderthenDuration, err := str2duration.ParseDuration("7d")
 	assert.NoError(t, err)
 	return &EBSClean{
-		awsClient: internal.NewFromInterface(ec2ClientMock, cloudTrailMock),
+		awsClient: internal.NewFromInterface(ec2ClientMock, cloudTrailMock, cloudWatchLogsMock),
 		olderthen: olderthenDuration,
 	}
 }
 
 func TestNewInstance(t *testing.T) {
 	ec2ClientMock := &mocks.MockEc2client{}
-	cloudTrailmock := &mocks.MockCloudTrail{}
-	awsClient := internal.NewFromInterface(ec2ClientMock, cloudTrailmock)
+	cloudTrailMock := &mocks.MockCloudTrail{}
+	cloudWatchLogsMock := &mocks.MockCloudWatchLogs{}
+	awsClient := internal.NewFromInterface(ec2ClientMock, cloudTrailMock, cloudWatchLogsMock)
 	ebsclean := NewInstance(awsClient, time.Duration(1), false, false)
 	assert.NotNil(t, ebsclean)
 	assert.Equal(t, time.Duration(1), ebsclean.olderthen)
@@ -44,10 +45,11 @@ func TestDeleteUnusedEBSVolumes(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		ec2ClientMock := &mocks.MockEc2client{}
 		cloudTrailMock := &mocks.MockCloudTrail{}
+		cloudWatchLogsMock := &mocks.MockCloudWatchLogs{}
 		// should do two describe calls and four delete calls (two delete per describe)
 		toDelete := mockDescribeVolumes(2, 2, deleteWhenOlder, ec2ClientMock)
 		mockDeleteVolume(toDelete, false, ec2ClientMock)
-		SUT := setupSUT(t, ec2ClientMock, cloudTrailMock)
+		SUT := setupSUT(t, ec2ClientMock, cloudTrailMock, cloudWatchLogsMock)
 
 		SUT.DeleteUnusedEBSVolumes()
 		ec2ClientMock.AssertExpectations(t)

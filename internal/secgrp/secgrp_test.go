@@ -27,7 +27,8 @@ func setupSUT(t *testing.T, olderthen *time.Duration, dryrun, onlyUnused bool) (
 
 	ec2ClientMock := mocks.NewMockEc2client(t)
 	cloudTrailMock := mocks.NewMockCloudTrail(t)
-	awsClient := internal.NewFromInterface(ec2ClientMock, cloudTrailMock)
+	cloudWatchLogsMock := mocks.NewMockCloudWatchLogs(t)
+	awsClient := internal.NewFromInterface(ec2ClientMock, cloudTrailMock, cloudWatchLogsMock)
 	SUT := NewInstance(awsClient, olderthen, dryrun, onlyUnused)
 	return SUT, ec2ClientMock, cloudTrailMock
 }
