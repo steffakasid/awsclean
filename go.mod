@@ -3,7 +3,7 @@ module github.com/steffakasid/awsclean
 go 1.22.5
 
 require (
-	github.com/aws/aws-sdk-go-v2/config v1.29.9
+	github.com/aws/aws-sdk-go-v2/config v1.29.13
 	github.com/xhit/go-str2duration/v2 v2.1.0
 )
 
@@ -46,13 +46,13 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.3
-	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.48.2
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.210.0
+	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.48.3
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.211.2
 	github.com/google/uuid v1.6.0
 	github.com/rodaine/table v1.3.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
-	github.com/spf13/viper v1.20.0
-	github.com/steffakasid/eslog v0.3.3
+	github.com/spf13/viper v1.20.1
+	github.com/steffakasid/eslog v0.3.4
 	github.com/stretchr/testify v1.10.0
 )
