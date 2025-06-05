@@ -2,15 +2,25 @@
   "extends": [
     "config:base"
   ],
+  "postUpdateOptions": [
+    "gomodTidy"
+  ],
   "packageRules": [
     {
-      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
       "automerge": true,
       "groupName": "Dependencies (non-major)",
       "groupSlug": "non-major"
     },
     {
-      "matchUpdateTypes": ["major"],
+      "matchUpdateTypes": [
+        "major"
+      ],
       "automerge": true,
       "groupName": "Dependencies (major)",
       "groupSlug": "major"
@@ -19,8 +29,12 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["^.*go$"],
-      "matchStrings": ["\/\/go:generate go run (?<depName>.+?)@(?<currentValue>.*?)\n$"],
+      "fileMatch": [
+        "^.*go$"
+      ],
+      "matchStrings": [
+        "\/\/go:generate go run (?<depName>.+?)@(?<currentValue>.*?)\n$"
+      ],
       "datasourceTemplate": "go"
     }
   ]
