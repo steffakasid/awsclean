@@ -1,6 +1,6 @@
 {
   "extends": [
-    "config:base"
+    "config:recommended"
   ],
   "postUpdateOptions": [
     "gomodTidy"
@@ -29,11 +29,11 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": [
-        "^.*go$"
+      "managerFilePatterns": [
+        "/^.*go$/"
       ],
       "matchStrings": [
-        "\/\/go:generate go run (?<depName>.+?)@(?<currentValue>.*?)\n$"
+        "//go:generate go run (?<depName>.+?)@(?<currentValue>.*?)\n$"
       ],
       "datasourceTemplate": "go"
     }
