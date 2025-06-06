@@ -1,10 +1,7 @@
-with-expecter: True
-all: true
-filename: "{{.InterfaceName}}.go"
-outpkg: "mocks"
-log-level: "info"
 packages:
   github.com/steffakasid/awsclean/internal:
     config:
+      filename: "{{.InterfaceName}}.go"
       dir: "internal/mocks"
       recursive: True
+      log-level: "info"
