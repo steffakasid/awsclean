@@ -39,8 +39,8 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "^.github\/workflows\/.*\\.yml$"
+      "managerFilePatterns": [
+        "/^.github/workflows/.*\\.yml$/"
       ],
       "matchStrings": [
         "(?<depName>go)-version: (?<currentValue>.*?)\n"
