@@ -43,7 +43,7 @@
         "^.github\/workflows\/.*\\.yml$"
       ],
       "matchStrings": [
-        "(?<depName>go)-version: (?<currentValue>.*?)\n$"
+        "(?<depName>go)-version: (?<currentValue>.*?)\n"
       ],
       "depNameTemplate": "go",
       "datasourceTemplate": "golang-version"
