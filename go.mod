@@ -41,7 +41,7 @@ require (
 require (
 	github.com/aws/aws-sdk-go-v2 v1.39.0
 	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.53.4
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.252.0
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.253.0
 	github.com/google/uuid v1.6.0
 	github.com/rodaine/table v1.3.0
 	github.com/spf13/cobra v1.10.1
