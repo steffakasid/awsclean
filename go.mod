@@ -3,12 +3,12 @@ module github.com/steffakasid/awsclean
 go 1.25.0
 
 require (
-	github.com/aws/aws-sdk-go-v2/config v1.31.13
+	github.com/aws/aws-sdk-go-v2/config v1.31.14
 	github.com/xhit/go-str2duration/v2 v2.1.0
 )
 
 require (
-	github.com/aws/aws-sdk-go-v2/credentials v1.18.17 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.18.18 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.10 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.10 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.10 // indirect
@@ -17,7 +17,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.10 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.29.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.38.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.38.8 // indirect
 	github.com/aws/smithy-go v1.23.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
@@ -40,8 +40,8 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.39.3
-	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.53.7
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.257.2
+	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.53.8
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.258.0
 	github.com/google/uuid v1.6.0
 	github.com/rodaine/table v1.3.0
 	github.com/spf13/cobra v1.10.1
