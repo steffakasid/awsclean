@@ -45,7 +45,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.275.1
 	github.com/google/uuid v1.6.0
 	github.com/rodaine/table v1.3.0
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/steffakasid/eslog v0.3.6
