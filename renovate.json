@@ -24,6 +24,10 @@
       "automerge": true,
       "groupName": "Dependencies (major)",
       "groupSlug": "major"
+    },
+    {
+      "matchDatasources": ["golang-version"],
+      "rangeStrategy": "bump"
     }
   ],
   "customManagers": [
