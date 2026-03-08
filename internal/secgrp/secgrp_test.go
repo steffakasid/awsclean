@@ -144,6 +144,9 @@ func TestDeleteSecurityGroups(t *testing.T) {
 		ec2Mock.AssertExpectations(t)
 		cloudTrailMock.AssertExpectations(t)
 	})
+
+	// TODO: Add test for ignore flag
+	
 }
 
 func mockDescribeNetIfaces(ec2Mock *mocks.MockEc2client,
