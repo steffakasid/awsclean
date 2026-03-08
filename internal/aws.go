@@ -106,7 +106,7 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used *SecurityGr
 	// TODO: must use go routines
 	for _, secGrp := range secGrps {
 
-		filter := *secGrp.SecurityGroup.GroupName
+		filter := *secGrp.GroupName
 		eslog.Logger.Debugf("GetNotUsedSecGrpsFromENI(): filter %s", filter)
 
 		in := &ec2.DescribeNetworkInterfacesInput{
@@ -133,7 +133,7 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used *SecurityGr
 			err := used.AddOrUpdate(*secGrp)
 			eslog.LogIfErrorf(err, eslog.Errorf, "GetNotUsedSecGrpFromENI() AddOrUpdate() of used SecGrp failed: %s")
 		} else {
-			eslog.Logger.Debugf("No ENI attached to group with Name: %s", *secGrp.SecurityGroup.GroupName)
+			eslog.Logger.Debugf("No ENI attached to group with Name: %s", *secGrp.GroupName)
 			err := unused.AddOrUpdate(*secGrp)
 			eslog.LogIfErrorf(err, eslog.Errorf, "GetNotUsedSecGrpFromENI() AddOrUpdate() of unused SecGrp failed: %s")
 		}
@@ -143,7 +143,7 @@ func (a *AWS) GetNotUsedSecGrpsFromENI(secGrps SecurityGroups) (used *SecurityGr
 
 // TODO: move to secgrp.go
 func (a AWS) GetCloudTrailForSecGroups(startTime, endTime time.Time) SecurityGroups {
-	var nextToken string = "empty"
+	nextToken := "empty"
 
 	secGrps := SecurityGroups{}
 
@@ -202,18 +202,18 @@ func (a AWS) getDetailsForSecGrpsFromCloudTrail(out *cloudtrail.LookupEventsOutp
 }
 
 func (a *AWS) DeleteSecurityGroup(secGrp SecurityGroup, dryrun bool) error {
-	if secGrp.SecurityGroup == nil || secGrp.SecurityGroup.GroupId == nil {
+	if secGrp.SecurityGroup == nil || secGrp.GroupId == nil {
 		return fmt.Errorf("can not delete SecurityGroup without GroupId") // this should usually never happen
 	}
-	if secGrp.SecurityGroup.GroupName != nil {
-		eslog.Logger.Debugf("DeleteSecurityGroup(%v - %v), drydrun: %t", *secGrp.SecurityGroup.GroupName, *secGrp.SecurityGroup.GroupId, dryrun)
+	if secGrp.GroupName != nil {
+		eslog.Logger.Debugf("DeleteSecurityGroup(%v - %v), drydrun: %t", *secGrp.GroupName, *secGrp.GroupId, dryrun)
 	} else {
-		eslog.Logger.Debugf("DeleteSecurityGroup(%v), drydrun: %t", *secGrp.SecurityGroup.GroupId, dryrun)
+		eslog.Logger.Debugf("DeleteSecurityGroup(%v), drydrun: %t", *secGrp.GroupId, dryrun)
 	}
 
 	input := &ec2.DeleteSecurityGroupInput{
 		DryRun:  &dryrun,
-		GroupId: secGrp.SecurityGroup.GroupId,
+		GroupId: secGrp.GroupId,
 	}
 
 	_, err := a.ec2.DeleteSecurityGroup(context.TODO(), input)
