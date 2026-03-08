@@ -26,11 +26,11 @@ func (grps SecurityGroups) AddOrUpdate(grpToAdd SecurityGroup) error {
 	if grpToAdd.SecurityGroup == nil {
 		return errors.New("AddOrUpdate() grpToAdd.SecurityGroup is nil")
 	}
-	if grpToAdd.SecurityGroup.GroupName == nil {
+	if grpToAdd.GroupName == nil {
 		return errors.New("AddOrUpdate() grpToAdd.SecurityGroup.GroupName is nil")
 	}
 
-	groupName := *grpToAdd.SecurityGroup.GroupName
+	groupName := *grpToAdd.GroupName
 
 	if grp, exists := grps[groupName]; exists {
 		err := grp.mergeFields(grpToAdd)
@@ -85,7 +85,7 @@ func (grps SecurityGroups) getValueByIDorName(idOrName string) (value *SecurityG
 
 	for _, grp := range grps {
 		if grp.SecurityGroup != nil &&
-			*grp.SecurityGroup.GroupId == idOrName {
+			*grp.GroupId == idOrName {
 			return grp, true
 		}
 	}
@@ -104,23 +104,21 @@ func (tgt *SecurityGroup) mergeFields(src SecurityGroup) error {
 			// nothing to do as target alrwady have the data
 		} else if src.SecurityGroup != nil && tgt.SecurityGroup == nil {
 			tgt.SecurityGroup = src.SecurityGroup
-		} else {
-			// do not merge objects...
 		}
 
 		if src.SecurityGroup != nil &&
-			src.SecurityGroup.GroupName != nil &&
-			tgt.SecurityGroup.GroupName != nil &&
-			*src.SecurityGroup.GroupName != *tgt.SecurityGroup.GroupName {
-			return fmt.Errorf("error mergin SecurityGroups: %s != %s", *src.SecurityGroup.GroupName, *tgt.SecurityGroup.GroupName)
+			src.GroupName != nil &&
+			tgt.GroupName != nil &&
+			*src.GroupName != *tgt.GroupName {
+			return fmt.Errorf("error mergin SecurityGroups: %s != %s", *src.GroupName, *tgt.GroupName)
 		}
 	}
 
 	// if GroupId not set this should mean other fields are also not set so we overwrite with src.
 	if tgt.SecurityGroup != nil &&
 		src.SecurityGroup != nil &&
-		tgt.SecurityGroup.GroupId == nil &&
-		src.SecurityGroup.GroupId != nil {
+		tgt.GroupId == nil &&
+		src.GroupId != nil {
 		tgt.SecurityGroup = src.SecurityGroup
 	}
 

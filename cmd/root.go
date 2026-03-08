@@ -38,7 +38,6 @@ const (
 	endTimeFlagSH    = "e"
 	ignoreFlagSH     = "i"
 	launchTplFlagSH  = "l"
-	noShortHand      = ""
 	onlyUnusedFlagSH = "u"
 	olderthenFlagSH  = "o"
 	startTimeFlagSH  = "s"
