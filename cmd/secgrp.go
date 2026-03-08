@@ -107,7 +107,9 @@ Examples:
 
 		secgrp, startDatetime, endDatetime := setup()
 
-		err := secgrp.DeleteSecurityGroups(startDatetime, endDatetime)
+		ignoredIDs := viper.GetStringSlice(ignoreFlag)
+
+		err := secgrp.DeleteSecurityGroups(startDatetime, endDatetime, ignoredIDs...)
 		eslog.LogIfErrorf(err, eslog.Fatalf, "secgrp.DeleteSecurityGroups() failed: %s", err)
 	},
 }
@@ -123,6 +125,7 @@ func secGrpBindFlags() {
 
 	secGrpDeleteCmdFlags := secGrpDeleteCmd.Flags()
 	deleteOnlyFlags(secGrpDeleteCmdFlags)
+	secGrpDeleteCmdFlags.StringArrayP(ignoreFlag, ignoreFlagSH, nil, "List of SecurityGroup IDs to ignore")
 
 	secGrpCmdPersistentFlags := secGrpCmd.PersistentFlags()
 
@@ -161,7 +164,7 @@ func secGrpPrintTable(grps internal.SecurityGroups) {
 			if grp.CreationTime == nil {
 				grp.CreationTime = &time.Time{}
 			}
-			grpsTable.AddRow(nilCheck(grp.SecurityGroup.GroupId), nilCheck(grp.SecurityGroup.GroupName), grp.CreationTime.Format(time.RFC3339), grp.Creator, grp.IsUsed)
+			grpsTable.AddRow(nilCheck(grp.GroupId), nilCheck(grp.GroupName), grp.CreationTime.Format(time.RFC3339), grp.Creator, grp.IsUsed)
 		}
 	}
 	grpsTable.Print()

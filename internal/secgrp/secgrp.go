@@ -3,6 +3,7 @@ package secgrp
 import (
 	"fmt"
 	"maps"
+	"slices"
 	"time"
 
 	"github.com/steffakasid/awsclean/internal"
@@ -69,7 +70,7 @@ func (sec *SecGrp) GetSecurityGroups(startTime, endTime time.Time) error {
 	return nil
 }
 
-func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time) error {
+func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time, ignoredIDs ...string) error {
 	err := sec.GetSecurityGroups(startTime, endTime)
 	if err != nil {
 		return err
@@ -77,6 +78,10 @@ func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time) error {
 
 	if sec.onlyUnused {
 		for _, secGrp := range *sec.unusedSecGrps {
+			if slices.Contains(ignoredIDs, *secGrp.GroupId) {
+				eslog.Debugf("Skipping because of ignore flag: %s - %s", *secGrp.GroupName, *secGrp.GroupId)
+				continue
+			}
 			if secGrp.CreationTime == nil ||
 				sec.olderthen == nil ||
 				(sec.olderthen != nil && secGrp.CreationTime.Before(time.Now().Add(*sec.olderthen*-1))) {
@@ -88,10 +93,11 @@ func (sec SecGrp) DeleteSecurityGroups(startTime, endTime time.Time) error {
 					eslog.LogIfErrorf(err, eslog.Errorf, "error deleting security group: %s")
 				}
 			} else {
-				eslog.Logger.Infof("Skipping because of CreationDate %s - %s: %s", *secGrp.SecurityGroup.GroupName, *secGrp.SecurityGroup.GroupId, secGrp.CreationTime.Format(time.RFC3339))
+				eslog.Logger.Infof("Skipping because of CreationDate %s - %s: %s", *secGrp.GroupName, *secGrp.GroupId, secGrp.CreationTime.Format(time.RFC3339))
 			}
 		}
 	} else {
+		eslog.Logger.Warn("DeleteSecurityGroups() only-unused flag is not set. Not implemented as SecurityGroups can't be deleted if in use.")
 		// I guess trying to delete used SwcurityGroups will not work. So I did not implement it
 	}
 	return nil
