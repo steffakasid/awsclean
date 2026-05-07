@@ -72,3 +72,7 @@ The mockery configuration is done in:
 ----
 include::.mockery.yaml[]
 ----
+
+== TODO
+
+* Publish Homebrew formula updates through one shared tap repository for all projects.
