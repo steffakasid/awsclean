@@ -1,0 +1,29 @@
+# Govital Configuration Example
+# Copy this file to ~/.govital/govital.yaml or .govital.yaml in your project root
+
+# Logging configuration
+log_level: info # Options: debug, info, warn, error
+
+# Scanner configuration
+scanner:
+  # Number of days a dependency can be inactive before marked as stale
+  # Default: 180 days
+  stale_threshold_days: 180
+
+  # Number of days a dependency must have been updated within to be considered actively maintained
+  # Default: 90 days (3 months)
+  active_threshold_days: 90
+
+  # Whether to include indirect (transitive) dependencies in the scan
+  # Default: false (only scan direct dependencies)
+  include_indirect_dependencies: false
+
+  # List of dependencies to acknowledge as inactive without marking as errors
+  # These dependencies won't count toward the inactive count in scan results
+  # They will be marked with ⊘ symbol instead of ✗
+  # Default: empty list
+  acknowledged_dependencies:
+    - github.com/xhit/go-str2duration/v2
+    # - golang.org/x/net
+    # - github.com/legacy/stable-package
+    # - github.com/company/internal-tool
