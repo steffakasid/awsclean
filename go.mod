@@ -42,5 +42,5 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/steffakasid/eslog v0.3.8
 	github.com/stretchr/testify v1.12.1
-	github.com/xhit/go-str2duration/v2 v2.1.0
+	github.com/xhit/go-str2duration/v2 v2.2.0
 )
