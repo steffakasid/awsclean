@@ -3,6 +3,7 @@ package amiclean
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 	"time"
 
@@ -504,10 +505,5 @@ func mockDescribeLaunchTemplateVersions(numCalls int, ec2ClientMock *mocks.MockE
 }
 
 func isErrorCall(call int, errCallIDs []int) bool {
-	for _, errCallID := range errCallIDs {
-		if call == errCallID {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(errCallIDs, call)
 }

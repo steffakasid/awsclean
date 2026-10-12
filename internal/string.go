@@ -3,17 +3,13 @@ package internal
 import (
 	"encoding/json"
 	"regexp"
+	"slices"
 
 	"github.com/steffakasid/eslog"
 )
 
 func Contains(arr []string, elem string) bool {
-	for _, itm := range arr {
-		if itm == elem {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(arr, elem)
 }
 
 func UniqueAppend(arr []string, elem string) []string {
