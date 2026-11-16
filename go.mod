@@ -1,6 +1,6 @@
 module github.com/steffakasid/awsclean
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.13 // indirect
